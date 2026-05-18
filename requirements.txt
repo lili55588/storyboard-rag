@@ -1,0 +1,8 @@
+fastapi
+uvicorn
+google-generativeai
+chromadb
+langchain-text-splitters
+python-multipart
+anthropic
+openai

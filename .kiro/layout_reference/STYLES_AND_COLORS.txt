@@ -1,0 +1,53 @@
+﻿const AMBER = "#E8A020";
+const AMBER_HOVER = "#FBBF24";
+const BG = "#09090B";
+const SURFACE = "#141417";
+const BORDER = "#27272A";
+const TEXT = "#E4E4E7";
+const MUTED = "#A1A1AA";
+
+const styles = {
+  root: { height: "100vh", width: "100vw", background: BG, color: TEXT, fontFamily: "'Noto Serif SC', serif", position: "relative", display: "flex", flexDirection: "column", overflow: "hidden" },
+  grain: { position: "fixed", inset: 0, backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.03'/%3E%3C/svg%3E")`, pointerEvents: "none", zIndex: 0 },
+
+  header: { borderBottom: "1px solid " + BORDER, padding: "16px 32px", display: "flex", justifyContent: "space-between", alignItems: "center", position: "relative", zIndex: 10, background: "rgba(9, 9, 11, 0.7)", backdropFilter: "blur(12px)" },
+  headerInner: { display: "flex", alignItems: "center", gap: 16 },
+  logo: { fontSize: 26, color: AMBER, textShadow: "0 0 15px rgba(232,160,32,0.4)" },
+  title: { fontSize: 18, fontWeight: "800", color: "#FFF", letterSpacing: "1px" },
+  titleSub: { fontSize: 12, color: AMBER, marginTop: 4, opacity: 0.8 },
+  settingsBtn: { background: "rgba(255,255,255,0.03)", color: TEXT, border: "1px solid " + BORDER, padding: "8px 18px", borderRadius: "6px", cursor: "pointer", transition: "all 0.2s ease", fontSize: "13px" },
+
+  nav: { display: "flex", borderBottom: "1px solid " + BORDER, position: "relative", zIndex: 1, background: SURFACE },
+  navBtn: { flex: 1, display: "flex", justifyContent: "center", alignItems: "center", gap: 12, padding: "16px 24px", background: "none", border: "none", borderRight: "1px solid " + BORDER, color: MUTED, cursor: "pointer", outline: "none", transition: "all 0.3s ease" },
+  navBtnActive: { color: "#FFF", background: "rgba(232,160,32,0.08)", boxShadow: "inset 0 -2px 0 " + AMBER },
+  navStep: { color: AMBER, fontSize: "12px", marginRight: "4px", fontWeight: "bold", opacity: 0.8 },
+
+  main: { display: "grid", gridTemplateColumns: "1fr 1.3fr", flex: 1, position: "relative", zIndex: 1, overflow: "hidden" },
+  panel: { padding: "24px 32px", borderRight: "1px solid " + BORDER, display: "flex", flexDirection: "column", gap: 16, overflowY: "auto", height: "100%", boxSizing: "border-box" },
+  panelHeader: { borderBottom: "1px solid " + BORDER, paddingBottom: "12px", display: "flex", justifyContent: "space-between", alignItems: "center" },
+  panelTitle: { fontSize: "16px", fontWeight: "bold", color: "#FFF", display: "flex", alignItems: "center", gap: "8px" },
+
+  textarea: { background: "rgba(0,0,0,0.3)", border: "1px solid " + BORDER, color: TEXT, padding: "20px", borderRadius: "8px", flex: 1, minHeight: "300px", resize: "none", outline: "none", lineHeight: 1.7, fontSize: "14px", transition: "border-color 0.3s ease" },
+
+  btn: { background: AMBER, color: "#000", border: "none", padding: "14px 28px", borderRadius: "6px", fontWeight: "bold", cursor: "pointer", transition: "all 0.2s ease", fontSize: "14px" },
+  btnDisabled: { opacity: 0.5, cursor: "not-allowed", filter: "grayscale(100%)" },
+  btnGhost: { background: "rgba(232,160,32,0.05)", color: AMBER, border: "1px solid rgba(232,160,32,0.3)", padding: "12px 20px", borderRadius: "6px", cursor: "pointer", outline: "none", transition: "all 0.2s ease", fontSize: "13px" },
+
+  output: { background: "rgba(0,0,0,0.2)", border: "1px solid " + BORDER, borderRadius: "8px", padding: "24px", flex: 1, overflowY: "auto", boxShadow: "inset 0 2px 15px rgba(0,0,0,0.2)" },
+  outputActions: { display: "flex", gap: "12px", marginTop: "16px", paddingTop: "16px", borderTop: "1px solid " + BORDER },
+  empty: { flex: 1, display: "flex", alignItems: "center", justifyContent: "center", color: BORDER, fontSize: "15px", fontWeight: "bold", letterSpacing: "1px" },
+
+  modalOverlay: { position: "fixed", top: 0, left: 0, right: 0, bottom: 0, background: "rgba(0,0,0,0.85)", zIndex: 999, display: "flex", justifyContent: "center", alignItems: "center", backdropFilter: "blur(8px)" },
+  modalContent: { background: SURFACE, border: "1px solid " + BORDER, borderRadius: "12px", width: "850px", maxWidth: "95%", maxHeight: "90vh", display: "flex", flexDirection: "column", boxShadow: "0 20px 50px rgba(0,0,0,0.7)" },
+  modalHeader: { padding: "20px 32px", borderBottom: "1px solid " + BORDER, display: "flex", justifyContent: "space-between", alignItems: "center", background: "rgba(255,255,255,0.02)" },
+  closeBtn: { background: "none", border: "none", color: MUTED, fontSize: "28px", cursor: "pointer", outline: "none", transition: "color 0.2s ease" },
+  modalBody: { padding: "32px", overflowY: "auto", flex: 1 },
+  modalH3: { fontSize: "15px", color: AMBER, marginTop: "0", marginBottom: "20px", borderBottom: "1px solid " + BORDER, paddingBottom: "10px", fontWeight: "bold" },
+  configCard: { background: "rgba(0,0,0,0.3)", border: "1px solid " + BORDER, padding: "20px", borderRadius: "8px", marginBottom: "24px" },
+  inputGroup: { display: "flex", flexDirection: "column", gap: "8px", marginBottom: "16px" },
+  row: { display: "flex", gap: "20px" },
+  promptTabs: { background: "rgba(0,0,0,0.2)", padding: "20px", borderRadius: "8px", border: "1px solid " + BORDER },
+  promptInput: { background: "#000", border: "1px solid " + BORDER, color: TEXT, padding: "16px", borderRadius: "6px", width: "100%", resize: "vertical", fontSize: "13px", outline: "none", boxSizing: "border-box", fontFamily: "inherit", lineHeight: 1.6 },
+  resetBtn: { background: "transparent", border: "none", color: "#ef4444", fontSize: "13px", cursor: "pointer", outline: "none", opacity: 0.8 },
+  modalFooter: { padding: "20px 32px", borderTop: "1px solid " + BORDER, display: "flex", justifyContent: "flex-end", gap: "16px", background: "rgba(0,0,0,0.2)" }
+};

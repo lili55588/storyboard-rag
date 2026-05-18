@@ -1,0 +1,1348 @@
+import { useState, useRef, useEffect } from "react";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
+
+const STYLE_PRESETS = {
+  exclusive: {
+    name: "✨ 香蕉猫/刀盾狗专属 (梦幻仙境)",
+    color: "#E8A020",
+
+    // 1. 剧本阶段：注入物理阻尼与尺度感
+    script_patch: `
+【最高美学红线：微观史诗世界观】
+- 环境物（花草、蘑菇）必须作为"第三角色"强制改变角色行动轨迹：如巨叶遮挡视线引发的绕行、青苔湿滑导致的重心失控、巨型蘑菇的物理回弹。
+- 绝对禁止：泥泞、废土感。地面必须是100%覆盖的干净绒草与青苔聚落。`,
+
+    // 2. 分镜阶段：中英双轨适配准则
+    shot_patch: `
+【分镜推演：中英双轨适配准则】
+- 英文版：强制注入摄影术语，锁定XYZ坐标。
+- 中文版：
+  1. 权重优先级：运镜/视角(等高平视) > 动作 > 主体 > 场景。
+  2. 视觉白描化：将"SSS"翻译为"透亮感"，将"24mm广角"翻译为"宏大的微观纵深"。
+  3. 站位固化：明确描述"香蕉猫在画面右侧被切断，刀盾狗在左侧草丛深处"。
+`,
+
+    // 3. 生图判定阶段补丁：空镜专属与负面词隔离
+    prompt_patch: `
+【导演视觉推演逻辑：纯净微观空舞台】
+- 强制风格起手式：你输出的每一个 image_prompt，开头【必须固定为】："UE5真实微观摄影，梦幻仙境生态，无角色纯净空镜，"
+- 【最高洁癖与无生物警告】：画面必须是一尘不染的微观舞台，绝对禁止出现任何猫、狗、昆虫、人造物痕迹！为即梦后期合成留出纯净的底板。`,
+
+    // 负面提示词：彻底封杀 角色与生物
+    negative_zh: "任何角色, 动物, 昆虫, 人类, 香蕉猫, 狗, 塑料质感, 死板卡通, 泥泞, 脏乱, 废土风, 居中对称",
+    negative_en: "any characters, animals, insects, human, banana cat, dog, plastic texture, flat cartoon, muddy, dirty, wasteland, symmetrical composition"
+  },
+  standard: {
+    name: "🎨 通用/多风格模式",
+    color: "#A1A1AA",
+    script_patch: "",
+    shot_patch: "", // 通用模式不设限
+    prompt_patch: "",
+    negative_zh: "",
+    negative_en: ""
+  }
+};
+
+const DEFAULT_PROMPTS = {
+  script: `【微观生态公路片：剧本生成引擎 V5（松弛感与生命力版）】
+你是一位深谙宫崎骏与皮克斯美学的"治愈系生态散文"视觉编剧。
+你的任务是将用户的简单点子，自然推演成一部充满生命力、光影绝美、没有对白只有白描的【微观童话短片】。
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+【核心创作法则：告别死板，拥抱生态】
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+1. 【基调定位：微观生态公路片】：
+   - 抛弃生硬的"打怪升级"或"刻意制造危机"。故事的推动力是【环境的变换】与【纯粹的好奇心】。
+   - 它们在散步、在看风景、在感受光影，偶尔遇到一点小插曲，这就足够了。
+
+2. 【角色动态的"聪明与灵气"】：
+   - 它们虽然呆萌，但绝不是没有智商的木头！
+   - 必须展现它们"巧妙利用自然环境"的生存智慧（如：把大树叶当滑板滑草、抓住垂下的藤蔓荡秋千、把巨大的蘑菇当雨伞或餐桌）。
+   - 允许并鼓励它们之间产生温柔的"羁绊互动"（如：分享食物、用小爪子互相触碰、一起并排发呆看夕阳）。
+
+3. 【极简动作与绝美空镜（情绪的呼吸）】：
+   - 动作要克制！不要一连串的跑跳翻滚。
+   - 必须大量插入"情绪留白"：写它们闭眼感受微风、写丁达尔光束打在它们毛茸茸的脸上、写它们静静凝视水坑里的反光。让时间慢下来，让质感透出来。
+
+4. 【物理红线（不可逾越的底线）】：
+   - 行为自然，但【绝不能跨越物种生理边界】！
+   - 绝对禁止：鼓起腮帮子（必须保持动物吻部结构）、露出人类牙齿、像人类一样精准使用复杂工具、四足着地爬行（必须保持双足直立的企鹅步态）。
+   - 情绪表达必须是动物性的（如：歪头、耳朵抖动、瞳孔放大、打个自然的喷嚏），严禁人类的夸张五官形变。
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+【强制输出格式】
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+请使用以下 Markdown 结构输出剧本。将故事合理切分为 4-6 个核心叙事片段。
+【最高警告】：必须严格使用 | S1 |、| S2 | 等英文工程编号作为场景标题！
+【防偷懒/防抄袭警告】：方括号 [...] 内的说明仅为你的"推理指引"！你在输出正式剧本时，必须根据用户的具体输入进行【100%全原创环境推演】，绝对禁止在输出中出现我提示词里举过的任何例子！
+
+## 【全局编剧阐述】
+[一句话总结：本剧本展现的核心生态奇观与治愈情绪曲线。]
+【目标总时长】：XX秒（请声明已采用"松弛感与环境呼吸"的节奏法则）
+
+---
+
+## | S1 | 环境引入与好奇心萌芽
+- **视觉推演**：[纯自然白描。根据用户提供的特定环境，交代该环境的标志性奇观与角色的入场状态，展现最初的探索欲。]
+- **情绪基调**：[填入1-2个符合当下氛围的情绪词汇]
+
+## | S2 | 环境巧用/温柔互动
+- **视觉推演**：[根据当前场景的具体物理材质，推演出符合角色设定的巧妙互动或同伴间的温柔羁绊。禁止动作过载，保持松弛感。]
+- **情绪基调**：[填入1-2个情绪词汇]
+
+## | S3 | 绝美停顿（史诗级静谧）
+- **视觉推演**：[动作必须极度收敛！镜头拉开，重点描写该环境独有的宏大特征、光影质感，以及角色停下脚步发呆、闭眼享受的微表情。]
+- **情绪基调**：[如：宏大、孤独、极致治愈等]
+
+## | S4 | 微小余韵收尾
+- **视觉推演**：[脱离主视角，用一个不经意的自然小动作（如打个哈欠）或微小的环境变化（如水滴落下、光线偏移）作为彩蛋收尾，画面渐息。]
+- **情绪基调**：[填入1-2个情绪词汇]
+`,
+
+  shot: `你是一位顶级的即梦（Seedance 2.0）视频提示词架构师与分镜导演。
+你的任务是将【剧本】的叙事分镜，经过「合并判断」，直接转化为完美的【即梦直投提示词】与【首帧构图】。
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+【铁律一：V4 合并判断与生成单元划分】
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+你的输出单位是【生成单元】（即一次完整的即梦生视频，总时长≤13秒）：
+1. 【合并】：景别相同 + 运镜相同 → 必须合并在同一个生成单元内，用「随后」「紧接着」串联动作。
+2. 【切分】：景别改变 OR 运镜改变（如高潮处突切大特写） → 必须拆分为独立生成单元，分次提交！
+3. 【算力双轨制】：复杂动作（摔倒/翻滚）只能用"固定机位+质感型手持晃动"；极简动作才用"路径型推拉摇移"。
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+【铁律二：[frame_X] 时序标记使用边界】
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+- 当单个生成单元内只有 1-2 个动作时：【绝对禁止】使用 [frame_X] 或 [t=Xs]！只准用"随后、紧接着、同时"等自然语言串联。
+- 当单个生成单元内有 3 个以上的连续复杂动作时：必须使用 [t=Xs] 标记来精确控制时序节点。
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+【铁律三：V4 官方权重黄金公式（顺序绝对不可逆！）】
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+每个生成单元必须转化为一段 120-280 字的纯中文长句（除4K、16:9外，严禁中英混杂与 --no 参数）。
+【最高警告】：组装顺序必须严格如下，错位将导致 AI 渲染崩溃！
+1. 【运镜与视角（景别呼吸法）】（最高权重，放最开头！）：
+   - 必须具备人类摄影指导的审美本能，景别需随叙事节奏自然"呼吸"。
+   - 当角色初入新环境或展现危机感时，大胆使用【大远景/广角全景】（交代宏大世界观，反衬角色极度渺小）；当角色进行肢体碰撞或情绪传递时，自然切回【中/近景】。拒绝全程死板站桩！
+2. 【主体外形】（多角色按主次排序写到脚）
+3. 【连续大动作】（白描过程，严禁理科黑话，严禁体操式落地）
+4. 【微表情细节】（呼吸、眼神）
+5. 【场景与环境（不经意的层次感）】：
+   - 必须一字不差复制设定的环境，但要巧妙利用环境天然存在的物体（如镜头前的一簇虚化花草、远处清晰的群山或废墟）建立自然的前中后空间层次。切忌生硬刻意堆砌元素，自然即是最高级。
+6. 【光影氛围】（必须是治愈系暖光或清透自然光）
+7. 【风格调性】（强制加入：3D治愈系童话微观，干净通透）
+8. 【质量约束】（强制添加：面部五官清晰稳定不变形，眼睛嘴型不扭曲，人体结构正常，比例自然，动作连贯不僵硬）
+9. 【时长与比例】（如 6秒, 16:9）
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+【强制输出格式】
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+请使用以下 Markdown 结构输出。每个【生成单元】代表一次一镜到底的即梦生成。
+
+【最高警告——绝对禁止表格】：
+- 绝对禁止在输出中生成任何 Markdown 表格（即禁止使用 | 列1 | 列2 | 的表头+分隔行+数据行结构）！
+- 绝对禁止输出场景编号/四幕位置/情绪节拍/景别/运镜/时长的汇总表！
+- 绝对禁止在生成单元之前输出任何形式的"分镜单总览表"或"场次规划表"！
+- 你的唯一输出语言就是下面的「## | 生成单元X |」标题+即梦直投词，没有其他任何格式！
+
+## | 生成单元一 | ⏳总时长：[X]秒
+- **即梦直投词（严格 120-280 字）**：
+  [严格按照V4黄金公式拼装的连续白描长句。示例：固定中景，手持轻微晃动。香蕉猫……直挺挺横着砸进青苔里。香蕉猫保持严肃O型嘴。厚实绿色青苔……面部五官清晰稳定不变形，人体结构正常，动作连贯不僵硬。6秒，16:9]
+
+（后续生成单元以此类推，命名为 | 生成单元二 |...）
+`,
+
+  prompt: `你是一位"微观史诗"场景底片（Clean Plate）设计专家。
+你的任务是根据上游分镜单的 JSON 结构，推演并生成用于视频合成的纯净场景底图。
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+【环境提纯：IP 屏蔽指令】
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+本次生成为纯场景空镜底板！你必须彻底清空所有关于特定角色（如香蕉猫、刀盾狗等）的外观与动作记忆。
+输入中可能包含角色动作描述（来自上游剧本/分镜），你只从中提取【地点、环境、光影、遮挡物】信息，其他一概丢弃。
+你的算力必须 100% 倾注于"微观尺度暗示"与"光影物理留白"的构建上。
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+【核心策略：场景接力与重置判定】
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+通过分镜单中的场景地点描述，决定生图策略：
+
+1. 策略 A「generate_new_image」（生成新场景）：
+   - 触发条件：视频开场第一个单元；或剧本明确更换地点；或视角发生跨级跳变。
+   - 执行：按照下述【5层场景推演框架】生成详尽的场景提示词。
+
+2. 策略 B「use_tail_frame」（沿用上一单元）：
+   - 触发条件：与上一单元地点相同、视角相同，仅是动作时间轴顺延。
+   - 执行：image_prompt 强制填 ""，negative_prompt 强制填 ""。
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+【铁律：6层纯场景空镜推演框架（Strategy A 必读）】
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+【最高禁令】：画面中严禁出现任何猫、狗、昆虫或人类！必须是"空无一人、等待入场的微观世界舞台"。
+
+第1层：物理机位与微观比例（锁定尺度感）
+- 视角：必须锁定"等高平视（Eye-level）"，摄影机高度固定在 10cm-15cm。
+- 镜头：强制使用"24mm广角微距探针镜头"。
+- 比例暗示：必须加入巨物细节（如：比拳头还大的露珠、粗壮如树的叶脉、巨大的真菌伞盖）来维持微观感。
+
+第2层：空间纵深与"窥视感"（概率化规则）
+- 前景遮挡：镜头前方允许出现轻微自然前景遮挡（如稀疏草叶虚化），占比画面0%-10%随机浮动，营造不经意窥视感而非强制遮挡。
+- 远景层级：远景逐渐稀释、结构弱化、向光源方向自然消散，形成通透深远的空间退晕。
+
+第3层：中景生态过渡区（防穿模设计）
+- 过渡区域：画面中景（焦点处）为自然生态过渡区，可存在稀疏植被、局部留白或低矮花草群落，但不强制绝对空场。
+- 目的：为后续叠放角色提供自然的站位空间，允许环境元素局部延伸但避免形成视觉切面。
+
+第4层：光影层级与材质（SSS）
+- 光效：清晨柔和漫反射基底，叠加穿透缝隙的金色丁达尔光束。
+- 材质：植被必须具备"次表面散射（SSS）"，光线穿透叶片呈现半透明肉质感。
+
+第5层：洁癖级微观生态环境
+- 地表：100%覆盖高低起伏的簇状青苔与小白花。绝对禁止泥泞、废土。
+
+第6层：空气透视与空间连续性（关键新增）
+- 密度梯度：空间必须存在"由近到远逐渐变轻"的视觉密度梯度，前景 > 中景 > 远景逐级降低细节密度。
+- 视觉通透：不允许任何一层形成"视觉阻断面"，远景必须存在可穿透区域（light opening / visual escape），保证画面呼吸感。
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+【输出格式要求：双轨语言适配】
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+直接以 "[" 开头，输出纯净 JSON 数组，每个对象必须包含且仅包含以下 5 个字段：
+
+"fragment_id"：当前单元编号，如「生成单元一」
+"image_strategy"：「generate_new_image」或「use_tail_frame」
+"source_fragment_id"：若为接力，填上一单元的 fragment_id；若为新图，填 ""
+"image_prompt"：策略A时输出场景空镜描述；策略B时填 ""
+"negative_prompt"：策略A时输出排除角色的禁止词；策略B时填 ""
+
+- 英文平台（MJ/Kling）：image_prompt 使用高密度专业摄影术语。
+- 中文平台（即梦）：image_prompt 使用自然语言白描。
+
+绝对禁止输出前言后语！直接以 "[" 开头。`,
+
+
+}; // DEFAULT_PROMPTS 结束
+
+const STAGES = [
+  { id: "script", label: "剧本", icon: "✍️", action: "生成场景卡", placeholder: "描述短片概念。请务必明确写出角色将要遭遇的具体物品（材质/形状/尺寸估计），例如：一枚生锈的金属瓶盖..." },
+  { id: "shot", label: "镜头", icon: "🎬", action: "生成分镜单", placeholder: "粘贴场景卡..." },
+  { id: "prompt", label: "提示词", icon: "⚡", action: "提取 JSON 执行单", placeholder: "粘贴分镜单..." }
+];
+
+export default function App() {
+  const [stage, setStage] = useState(0);
+  const [inputs, setInputs] = useState(["", "", ""]);
+  const [outputs, setOutputs] = useState(["", "", ""]);
+  const [loading, setLoading] = useState(false);
+  const [copied, setCopied] = useState(false);
+  const [copiedDirect, setCopiedDirect] = useState(false);
+  
+  const [showSettings, setShowSettings] = useState(false);
+  const [showRadar, setShowRadar] = useState(false);
+  const [radarMode, setRadarMode] = useState("core");
+  const [styleMode, setStyleMode] = useState('exclusive'); // 默认为专属风格
+
+  const [config, setConfig] = useState({
+    prompts: { ...DEFAULT_PROMPTS },
+    routes: {
+      script: { name: "1. 剧本生成", url: "", key: "", model: "", is_thinking: false },
+      shot: { name: "2. 分镜推演", url: "", key: "", model: "", is_thinking: false },
+      prompt: { name: "3. JSON判定(兼数据提炼)", url: "", key: "", model: "", is_thinking: false }
+    }
+  });
+
+  const [availableIPs, setAvailableIPs] = useState([]);
+  const [selectedIPs, setSelectedIPs] = useState([]);
+  const [isFetchingIPs, setIsFetchingIPs] = useState(false); 
+  const [rawAnalysisText, setRawAnalysisText] = useState("");
+  const [newIpName, setNewIpName] = useState("香蕉猫宇宙"); 
+  const [washing, setWashing] = useState(false);
+  const [washResult, setWashResult] = useState("");
+  const [washJson, setWashJson] = useState("");
+  const [runId, setRunId] = useState("");
+  const [activeRouteTab, setActiveRouteTab] = useState("script");
+  const [executionMode, setExecutionMode] = useState('sequential');  // 'sequential' = 逐段推演 / 'batch' = 全量出片
+
+  // 🌟 新增：记住当前生图的语言选择
+  const [promptLang, setPromptLang] = useState('zh');
+
+  // 自动化切片推演的状态管理
+  const [chunkQueue, setChunkQueue] = useState([]);
+  const [chunkIndex, setChunkIndex] = useState(0);
+  const [showChunkModal, setShowChunkModal] = useState(false);
+
+  const abortControllerRef = useRef(null);
+  const timeoutRef = useRef(null);
+  const timeoutTriggeredRef = useRef(false);
+  const outputRef = useRef(null);
+
+  const fetchIPs = async () => {
+    setIsFetchingIPs(true);
+    try {
+      const res = await fetch("http://127.0.0.1:8000/get_available_ips");
+      const textData = await res.text();
+      const data = JSON.parse(textData);
+      if (data.status === "success" && data.ips) {
+        setAvailableIPs(data.ips);
+      }
+    } catch (e) {
+      console.error("获取IP列表失败", e);
+    } finally {
+      setIsFetchingIPs(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchIPs();
+  }, []);
+
+  useEffect(() => {
+    const saved = localStorage.getItem("micro_epic_config_v30");
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        setConfig(prev => ({
+          ...prev,
+          prompts: {
+            ...DEFAULT_PROMPTS,           // 先铺设最新的默认值
+            ...(parsed.prompts || {}),    // 恢复用户的自定义提示词（如分镜、生图等）
+            script: DEFAULT_PROMPTS.script, // 🔒 核心补丁：强制锁死剧本阶段使用代码里的最新V4法则！
+            shot: DEFAULT_PROMPTS.shot // 🔒 同样锁死分镜阶段，防止旧版提示词残留导致表格格式泄漏
+          },
+          routes: { ...prev.routes, ...(parsed.routes || {}) } // 完美保留用户的 API Key 和模型配置
+        }));
+      } catch (e) {}
+    }
+  }, []);
+
+  useEffect(() => {
+    if (outputs[stage] && outputRef.current) {
+      outputRef.current.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+  }, [outputs, stage]);
+
+  const handleSaveConfig = () => {
+    localStorage.setItem("micro_epic_config_v30", JSON.stringify(config));
+    setShowSettings(false);
+  };
+
+  // 🌟 修改：接收 targetLang 参数
+  const handleGenerate = async (targetLang = null) => {
+    const input = inputs[stage].trim();
+    if (!input) return;
+
+    // 🌟 新增：更新并记录当前语言
+    const effectiveLang = targetLang || promptLang;
+    if (targetLang) setPromptLang(targetLang);
+
+    if (abortControllerRef.current) abortControllerRef.current.abort();
+    abortControllerRef.current = new AbortController();
+
+    const currentRunId = runId || Date.now() + "_" + Math.random().toString(36).slice(2, 8);
+    if (!runId) setRunId(currentRunId);
+
+    if (timeoutRef.current) clearTimeout(timeoutRef.current);
+    timeoutTriggeredRef.current = false;
+    timeoutRef.current = setTimeout(() => {
+      timeoutTriggeredRef.current = true;
+      if (abortControllerRef.current) abortControllerRef.current.abort();
+    }, 300000);
+
+    setLoading(true);
+    setOutputs(prev => { const next = [...prev]; next[stage] = ""; return next; });
+
+    try {
+      const stageId = STAGES[stage].id;
+
+      let finalInput = input;
+      if (stageId === "prompt") {
+        const script = outputs[0]?.trim();
+
+        // 🌟 核心补丁：前端正则预处理，把文本分镜单转换为结构化 JSON，消除 AI 阅读长文本错位风险
+        const units = [];
+        const unitBlocks = input.split(/##\s*\|\s*(?=生成单元)/).filter(Boolean);
+
+        unitBlocks.forEach(block => {
+           const lines = block.trim().split('\n');
+           const fragment_id = lines[0].split('|')[0].trim(); // 提取如：生成单元一
+
+           // 🌟 修复：由于分镜阶段已经砍掉了首帧图，直接提取直投词到段落末尾
+           const directMatch = block.match(/- \*\*即梦直投词.*?\*\*：\n\s*([\s\S]*?)$/);
+
+           if (fragment_id) {
+             units.push({
+               "fragment_id": fragment_id,
+               "narrative_context": directMatch ? directMatch[1].trim() : ""
+             });
+           }
+        });
+
+        const structuredInput = units.length > 0 ? JSON.stringify(units, null, 2) : input;
+
+        finalInput = "【目标总剧本时长与宏观节奏】\n" + (script || "未提供") + "\n\n【已结构化的分镜单元列表 (JSON格式)】\n" + structuredInput;
+      }
+
+      // 🌟 核心修改：动态组装包含风格补丁的 System Prompt
+      const activePreset = STYLE_PRESETS[styleMode];
+      let sysPrompt = config.prompts[stageId];
+
+      if (stageId === "script") {
+        sysPrompt += "\n\n" + activePreset.script_patch;
+      }
+      // --- 新增分镜阶段补丁注入 ---
+      else if (stageId === "shot") {
+        sysPrompt += "\n\n" + activePreset.shot_patch;
+      }
+      // --------------------------
+      else if (stageId === "prompt") {
+        sysPrompt += "\n\n" + activePreset.prompt_patch;
+
+        // 注入语言指令与负向词补丁
+        if (effectiveLang === 'en') {
+          sysPrompt += "\n\n【语言指令】：image_prompt 必须纯英文，negative_prompt 保持英文。";
+          if (activePreset.negative_en) sysPrompt += "\n【风格反向词】：" + activePreset.negative_en;
+        } else {
+          sysPrompt += "\n\n【语言指令】：所有字段必须纯中文，禁止 '--no'。";
+          if (activePreset.negative_zh) sysPrompt += "\n【风格反向词】：" + activePreset.negative_zh;
+        }
+      }
+
+      // 基础请求体
+      const reqBody = {
+        stage: stageId,
+        input: finalInput,
+        session_id: "session_" + stageId,
+        system_prompt: sysPrompt, // 🌟 修改这里：使用组装后的 sysPrompt
+        ip_names: selectedIPs,
+        run_id: currentRunId,
+        routes: config.routes
+      };
+
+      // 🛡️ Bug 7 修复：仅在分镜 (shot) 阶段附加特有字段
+      if (stageId === "shot") {
+        reqBody.execution_mode = executionMode;
+        reqBody.segments = []; // 正常生成时传空，自动切片由 executeChunk 管理
+      }
+
+      const res = await fetch("http://127.0.0.1:8000/generate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(reqBody),
+        signal: abortControllerRef.current.signal,
+      });
+
+      if (!res.ok) throw new Error("HTTP 错误: " + res.status);
+      const reader = res.body.getReader();
+      const decoder = new TextDecoder("utf-8");
+      let currentText = "";
+      while (true) {
+        const { value, done } = await reader.read();
+        if (done) break;
+        if (abortControllerRef.current?.signal.aborted) break;
+        currentText += decoder.decode(value, { stream: true });
+        setOutputs(prev => { const next = [...prev]; next[stage] = currentText; return next; });
+      }
+
+      // 全量出片模式完成：清除残留的分段状态，防止进度条卡顿
+      if (executionMode === 'batch' && stageId === 'shot') {
+        setShowChunkModal(false);
+        setChunkQueue([]);
+        setChunkIndex(0);
+      }
+    } catch (e) {
+      if (e.name === "AbortError") {
+        setOutputs(prev => {
+          const next = [...prev];
+          const isTimeout = timeoutTriggeredRef.current;
+          const errMsg = isTimeout && !prev[stage]
+            ? "\n\n> 请求超时（300秒），请检查网络或后端日志。"
+            : "";
+          if (errMsg) next[stage] = prev[stage] + errMsg;
+          return next;
+        });
+      } else {
+        setOutputs(prev => {
+          const next = [...prev];
+          next[stage] = (prev[stage] || "") + "\n\n> 错误：" + e.message;
+          return next;
+        });
+      }
+    } finally {
+      if (timeoutRef.current) clearTimeout(timeoutRef.current);
+      setLoading(false);
+    }
+  };
+
+  // 1. 启动自动切片流程
+  const startChunkProcess = async () => {
+    const text = inputs[1]; // 仅在分镜阶段生效
+    if (!text.trim()) return alert("请先粘贴场景卡！");
+
+    // 正则提取所有类似 | S1 | 的场景编号
+    const regex = /\|\s*(S\d+)\s*\|/g;
+    const scenes = [];
+    let match;
+    while ((match = regex.exec(text)) !== null) {
+      scenes.push(match[1]);
+    }
+    const uniqueScenes = [...new Set(scenes)];
+
+    if (uniqueScenes.length === 0) {
+      return alert("没有检测到类似 | S1 | 的场景编号，请确保场景卡格式正确！");
+    }
+
+    // 将场景每 1 个分作一组 (比如 [["S1"], ["S2"], ["S3"]])
+    const queue = [];
+    for (let i = 0; i < uniqueScenes.length; i += 1) {
+      queue.push(uniqueScenes.slice(i, i + 1));
+    }
+
+    setChunkQueue(queue);
+    setChunkIndex(0);
+    setOutputs(prev => { const next = [...prev]; next[1] = ""; return next; });
+
+    // 启动第一刀
+    await executeChunk(queue, 0, text);
+  };
+
+  // 2. 执行每一刀切片
+  const executeChunk = async (queue, index, fullInput) => {
+    setShowChunkModal(false);
+    const targetScenes = queue[index].join(" 和 ");
+
+    // 🌟 修复问题 1：注入风格补丁 (Active Preset)
+    const activePreset = STYLE_PRESETS[styleMode];
+    let chunkSysPrompt = config.prompts.shot;
+    if (activePreset && activePreset.shot_patch) {
+      chunkSysPrompt += "\n\n" + activePreset.shot_patch;
+    }
+
+    // 🌟 修复致命 Bug：无论第几段，始终携带全量剧本，用自然语言限制其只生成 targetScenes
+    const prevOutput = index > 0 ? (outputs[1] || "") : "";
+    // 扩大截取范围，确保能包含上一段结尾的完整单元
+    const lastContext = index > 0 ? prevOutput.slice(-800).trim() : "";
+
+    // 🌟 动态提取上一段的最后一个生成单元编号
+    let lastUnitStr = "";
+    if (index > 0) {
+      const matches = prevOutput.match(/生成单元([一二三四五六七八九十百]+)/g);
+      if (matches && matches.length > 0) {
+        lastUnitStr = matches[matches.length - 1]; // 例如提取到 "生成单元二"
+      }
+    }
+
+    let prompt = "【自动化分段执行指令】\n为了保证镜头密度和防止算力截断，我们采用分段推演。\n请你**仅仅**为 " + targetScenes + " 生成分镜单！绝对不要往下生成后面的场景！";
+
+    if (index > 0) {
+      prompt += "\n\n【物理接戏锚点】：上一段分镜的结尾状态如下，请确保本段的首镜头完美承接其物理位置与因果关系：\n<上一段结尾参考>\n..." + lastContext + "\n</上一段结尾参考>";
+
+      // 🌟 强制注入编号顺延指令
+      if (lastUnitStr) {
+        prompt += "\n\n【最高警告：编号强制顺延】：上一段的最后一个单元是「" + lastUnitStr + "」。你本次输出的第一个单元必须紧接着它往下编号（例如上一个是\"生成单元二\"，本次就必须从\"生成单元三\"开始）！绝对禁止重新从「生成单元一」开始！";
+      } else {
+        prompt += "\n\n【最高警告：编号强制顺延】：本次输出的生成单元编号必须顺延上一段的编号，绝对禁止重新从「生成单元一」开始！";
+      }
+    }
+    // 永远带上目标剧情，防止大模型失忆瞎编！
+    prompt += "\n\n【原始完整场景卡（执行依据）】：\n" + fullInput;
+
+    if (abortControllerRef.current) abortControllerRef.current.abort();
+    abortControllerRef.current = new AbortController();
+    const currentRunId = runId || Date.now() + "_" + Math.random().toString(36).slice(2, 8);
+    if (!runId) setRunId(currentRunId);
+
+    setLoading(true);
+
+    try {
+      const res = await fetch("http://127.0.0.1:8000/generate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          stage: "shot",
+          input: prompt,
+          session_id: "session_shot",
+          system_prompt: chunkSysPrompt, // 🌟 真正应用补丁
+          ip_names: selectedIPs,
+          run_id: currentRunId,
+          routes: config.routes,
+          execution_mode: "default", // 明确告诉后端这是普通单次执行
+          segments: []
+        }),
+        signal: abortControllerRef.current.signal,
+      });
+
+      if (!res.ok) throw new Error("HTTP 错误: " + res.status);
+      const reader = res.body.getReader();
+      const decoder = new TextDecoder("utf-8");
+
+      let appendedText = "";
+      let baseOutputCaptured = false;
+      let baseText = ""; // 用来动态锁定屏幕上的已有文本
+
+      while (true) {
+        const { value, done } = await reader.read();
+        if (done) break;
+        if (abortControllerRef.current?.signal.aborted) break;
+        appendedText += decoder.decode(value, { stream: true });
+
+        let cleanText = appendedText;
+        if (index > 0) {
+            // 核心魔法：后台自动剔除后续切片的表头和代码块标记
+            cleanText = cleanText.replace(/```markdown\n?/g, "").replace(/```\n?/g, "");
+            cleanText = cleanText.replace(/^\|.*镜头编号.*\|\n/m, "");
+            cleanText = cleanText.replace(/^\|[\s:|-]+\|\n/m, "");
+            cleanText = cleanText.replace(/^\s+/, "");
+        }
+
+        setOutputs(prev => {
+          const next = [...prev];
+          if (!baseOutputCaptured) {
+            // 第一刀清空底板；后续追加时，静态锁定屏幕当前的已有文本
+            baseText = index === 0 ? "" : prev[1];
+            baseOutputCaptured = true;
+          }
+          const spacer = index > 0 && cleanText.length > 0 ? "\n" : "";
+          next[1] = baseText + spacer + cleanText;
+          return next;
+        });
+      }
+
+      // 生成完毕后，判断是否还有下一块肉要切
+      if (index < queue.length - 1) {
+        setShowChunkModal(true);
+      } else {
+        setTimeout(() => alert("🎉 所有场景已全部分段推演完毕，并且已为您无缝拼接成一份完整文档！"), 500);
+      }
+
+    } catch (e) {
+      if (e.name !== "AbortError") {
+        setOutputs(prev => { const next = [...prev]; next[1] = prev[1] + "\n\n> 切片生成错误：" + e.message; return next; });
+      }
+      // 无论成功还是出错，只要不是最后一段，都要弹出面板给用户重试的机会
+      if (index < queue.length) setShowChunkModal(true);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleContinue = async () => {
+    if (!outputs[stage]) return;
+    if (abortControllerRef.current) abortControllerRef.current.abort();
+    abortControllerRef.current = new AbortController();
+
+    if (timeoutRef.current) clearTimeout(timeoutRef.current);
+    timeoutTriggeredRef.current = false;
+    timeoutRef.current = setTimeout(() => {
+      timeoutTriggeredRef.current = true;
+      if (abortControllerRef.current) abortControllerRef.current.abort();
+    }, 300000);
+
+    setLoading(true);
+    const cleanText = outputs[stage]
+      .replace(/\n\n\n?> 请求超时[\s\S]*$/, '')
+      .replace(/\n\n\n?> 错误：[\s\S]*$/, '')
+      .replace(/\n\n\n?> \[异常\][\s\S]*$/, '')
+      .replace(/\n\n\n?> 接续错误：[\s\S]*$/, '')
+      .replace(/​/g, '');
+    const baseText = cleanText;
+    // 提取尾部800字作为断点续写的上下文锚点，防止模型"接不上前面的内容"
+    const tailContext = baseText.length > 800 ? baseText.slice(-800) : baseText;
+
+    try {
+      const stageId = STAGES[stage].id;
+      const continueInstruction = `【系统最高防断裂指令】你刚才的输出因为Token长度限制被物理截断了！请你直接、无缝地接着上一个字符继续输出！绝对不要包含任何前言后语，绝对不要使用Markdown代码块格式包裹，直接输出刚才断掉的后续文本或代码，拼上去必须完全合法！
+
+【断点锚点——以下是已生成内容的结尾片段，仅供定位用，绝对禁止重复生成】：
+\`\`\`
+...${tailContext}
+\`\`\``;
+
+      // 🌟 核心同步：接续生成时也要保持美学风格的物理隔离
+      const activePreset = STYLE_PRESETS[styleMode];
+      let sysPrompt = config.prompts[stageId];
+
+      if (stageId === "script") {
+        sysPrompt += "\n\n" + activePreset.script_patch;
+      }
+      else if (stageId === "shot") {
+        // 确保接续的分镜依然锁定在 V4 公式第 7 步的风格词
+        sysPrompt += "\n\n" + activePreset.shot_patch;
+      }
+      else if (stageId === "prompt") {
+        sysPrompt += "\n\n" + activePreset.prompt_patch;
+
+        // 保持语言记忆与风格反向词补丁
+        if (promptLang === 'en') {
+          sysPrompt += "\n\n【语言指令】：image_prompt 必须纯英文，negative_prompt 保持英文。";
+          if (activePreset.negative_en) sysPrompt += "\n【风格反向词】：" + activePreset.negative_en;
+        } else {
+          sysPrompt += "\n\n【语言指令】：所有字段必须纯中文，禁止 '--no'。";
+          if (activePreset.negative_zh) sysPrompt += "\n【风格反向词】：" + activePreset.negative_zh;
+        }
+      }
+
+      const res = await fetch("http://127.0.0.1:8000/generate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          stage: stageId,
+          input: continueInstruction,
+          session_id: "session_" + stageId,
+          system_prompt: sysPrompt, // 🌟 修改这里
+          ip_names: selectedIPs,
+          run_id: runId,
+          routes: config.routes
+        }),
+        signal: abortControllerRef.current.signal,
+      });
+
+      if (!res.ok) throw new Error("HTTP 错误: " + res.status);
+      const reader = res.body.getReader();
+      const decoder = new TextDecoder("utf-8");
+      let appendedText = "";
+      while (true) {
+        const { value, done } = await reader.read();
+        if (done) break;
+        if (abortControllerRef.current?.signal.aborted) break;
+        appendedText += decoder.decode(value, { stream: true });
+        setOutputs(prev => { const next = [...prev]; next[stage] = baseText + appendedText; return next; });
+      }
+    } catch (e) {
+      if (e.name !== "AbortError") {
+         setOutputs(prev => { const next = [...prev]; next[stage] = prev[stage] + "\n\n> 接续错误：" + e.message; return next; });
+      }
+    } finally {
+      if (timeoutRef.current) clearTimeout(timeoutRef.current);
+      setLoading(false);
+    }
+  };
+
+  const handleClearMemory = async () => {
+    if(window.confirm("确定要清空本阶段AI记忆吗？")) {
+      try {
+        await fetch("http://127.0.0.1:8000/clear_memory", {
+          method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ session_id: "session_" + STAGES[stage].id })
+        });
+        setOutputs(prev => { const next = [...prev]; next[stage] = ""; return next; });
+        setRunId("");
+        alert("记忆已清空！");
+      } catch(e) { alert("清空失败"); }
+    }
+  };
+
+  const handleWashText = async () => {
+    if (!rawAnalysisText.trim()) return alert("请先粘贴视频分析或大白话内容！");
+    if (!config.routes.prompt.key) return alert("请先在系统设置的 [3. JSON判定] 选项卡中配置 API Key！");
+
+    // 强制引导：如果用户选了JSON模式但文字过多，提出拦截警告
+    if (radarMode === "json" && rawAnalysisText.length > 2000) {
+      if (!confirm("⚠️ JSON 截断警告\n\n当前文本过长，提取 JSON 极易触发大模型物理截断！\n建议：每次仅粘贴 3-5 个镜头的描述进行提取。\n\n是否仍然强行继续？")) {
+        return;
+      }
+    }
+
+    setWashing(true);
+    setWashResult("");
+    setWashJson("");
+
+    // 魔法补丁：告诉后端用第3步的 Key 当作提炼引擎的 Key 用
+    const patchedRoutes = { ...config.routes, jimeng: config.routes.prompt };
+
+    try {
+      if (radarMode === "json") {
+        setWashResult("正在启动 JSON 范例提取引擎...\n请稍候，正在将自然语言精确映射为 5 字段场景空镜 JSON 结构...");
+        const res = await fetch("http://127.0.0.1:8000/extract_json_example", {
+          method: "POST", headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ raw_text: rawAnalysisText, ip_name: "core", routes: patchedRoutes }),
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.detail || "JSON 提取失败");
+        setWashJson(JSON.stringify(data.json_content, null, 2));
+        setWashResult("【JSON 范例库】更新完成\n\n" + data.message);
+
+      } else if (radarMode === "core") {
+        setWashResult("正在启动通用法则蒸馏引擎...\n\n[轨1]: 提炼视觉执行法则\n[轨2]: 建立美学档案\n[轨3]: 梳理叙事节拍\n\n请稍候，法则即将注入 core 目录...");
+        const res = await fetch("http://127.0.0.1:8000/distill_knowledge", {
+          method: "POST", headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ raw_text: rawAnalysisText, ip_name: "core", routes: patchedRoutes }),
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.detail || "法则提炼失败");
+        setWashResult(`【通用核心库】更新完成！\n\n### 视觉执行法则\n${data.tracks.visual}\n\n### 视觉美学锚定\n${data.tracks.aesthetic}\n\n### 叙事结构法则\n${data.tracks.narrative}`);
+
+      } else {
+        if (!newIpName.trim()) throw new Error("请输入要提取的IP宇宙名称！");
+        setWashResult("正在启动IP角色圣经提取引擎...\n\n目标宇宙：[" + newIpName + "]\n\n正在并行执行 V3.0 三轮深层提炼...\n由于需进行4次深度推理，耗时可能较长，请耐心等待！");
+        const res = await fetch("http://127.0.0.1:8000/extract_ip_bible", {
+          method: "POST", headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ raw_text: rawAnalysisText, ip_name: newIpName, routes: patchedRoutes }),
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.detail || "IP提取失败");
+        setWashResult("【专属IP库】资产建立完成！\n\n" + data.message + "\n\n### 提取出的完整IP圣经 V3.0：\n" + data.bible_content);
+        if (!availableIPs.includes(newIpName)) setAvailableIPs(prev => [...prev, newIpName]);
+      }
+    } catch (e) {
+      setWashResult("**处理出错**：" + e.message);
+    } finally {
+      setRawAnalysisText("");
+      setWashing(false);
+    }
+  };
+
+  const cur = STAGES[stage];
+
+  return (
+    <div style={styles.root}>
+      <div style={styles.grain} />
+
+      <header style={styles.header}>
+        <div style={styles.headerInner}>
+          <span style={styles.logo}>◈</span>
+          <div>
+            <div style={styles.title}>MICRO EPIC WORKFLOW</div>
+            <div style={styles.titleSub}>IP分层架构 · 导演工作台</div>
+          </div>
+        </div>
+        <div style={{display: 'flex', gap: '15px', alignItems: 'center'}}>
+          <div style={{display: 'flex', alignItems: 'center', gap: '8px', background: 'rgba(255,255,255,0.05)', padding: '4px 12px', borderRadius: '4px', border: "1px solid " + BORDER, flexWrap: 'wrap', maxWidth: '600px'}}>
+            <div style={{display: 'flex', alignItems: 'center', gap: '4px'}}>
+              <span style={{fontSize: '12px', color: MUTED}}>多选挂载:</span>
+              <button
+                onClick={fetchIPs}
+                disabled={isFetchingIPs}
+                style={{
+                  background: 'none', border: 'none', cursor: 'pointer',
+                  color: AMBER, fontSize: '12px', padding: '0 4px',
+                  opacity: isFetchingIPs ? 0.5 : 1
+                }}
+                title="重新拉取后台IP资产"
+              >
+                {isFetchingIPs ? "↻..." : "↻"}
+              </button>
+            </div>
+            {availableIPs.map(ip => (
+              <button 
+                key={ip}
+                onClick={() => setSelectedIPs(prev => prev.includes(ip) ? prev.filter(x => x !== ip) : [...prev, ip])}
+                style={{
+                  background: selectedIPs.includes(ip) ? AMBER : "transparent",
+                  color: selectedIPs.includes(ip) ? "#000" : MUTED,
+                  border: "1px solid " + (selectedIPs.includes(ip) ? AMBER : BORDER),
+                  padding: '2px 8px', borderRadius: '4px', fontSize: '12px', cursor: 'pointer', fontWeight: 'bold'
+                }}
+              >
+                {selectedIPs.includes(ip) ? "✓ " : "+"}{ip}
+              </button>
+            ))}
+            {availableIPs.length === 0 && <span style={{fontSize: '12px', color: MUTED}}>暂无专属IP资产</span>}
+            {selectedIPs.length === 0 && <span style={{fontSize: '12px', color: AMBER, marginLeft: '4px'}}>仅通用法则</span>}
+          </div>
+          
+          <button onClick={() => setShowRadar(true)} style={{...styles.settingsBtn, borderColor: '#E8A020', color: '#E8A020'}}>
+            结构化洗稿雷达
+          </button>
+          <button onClick={() => setShowSettings(true)} style={styles.settingsBtn}>系统设置</button>
+        </div>
+      </header>
+
+      <div style={{
+        padding: '10px 32px', background: 'rgba(255,255,255,0.02)',
+        borderBottom: '1px solid ' + BORDER, display: 'flex', gap: '15px', alignItems: 'center'
+      }}>
+        <span style={{fontSize: '12px', color: MUTED, fontWeight: 'bold'}}>当前美学预设:</span>
+        {Object.entries(STYLE_PRESETS).map(([key, preset]) => (
+          <button
+            key={key}
+            onClick={() => setStyleMode(key)}
+            style={{
+              padding: '6px 16px', borderRadius: '20px', fontSize: '12px', cursor: 'pointer',
+              border: '1px solid ' + (styleMode === key ? preset.color : BORDER),
+              background: styleMode === key ? `${preset.color}20` : 'transparent',
+              color: styleMode === key ? preset.color : MUTED,
+              fontWeight: 'bold', transition: 'all 0.3s'
+            }}
+          >
+            {preset.name}
+          </button>
+        ))}
+      </div>
+
+      <nav style={styles.nav}>
+        {STAGES.map((s, i) => (
+          <button key={s.id} onClick={() => { if (abortControllerRef.current) abortControllerRef.current.abort(); setStage(i); }} style={{...styles.navBtn, ...(stage === i ? styles.navBtnActive : {})}}>
+            <span style={styles.navIcon}>{s.icon}</span><div style={styles.navLabel}><span style={styles.navStep}>0{i + 1}</span>{s.label}</div>
+          </button>
+        ))}
+      </nav>
+
+      <main style={styles.main}>
+        <section style={styles.panel}>
+          <div style={styles.panelHeader}><div style={styles.panelTitle}>{cur.label}阶段</div></div>
+          <textarea style={styles.textarea} value={inputs[stage]} onChange={(e) => { const next = [...inputs]; next[stage] = e.target.value; setInputs(next); }} placeholder={cur.placeholder} />
+
+          {/* 🌟 分镜阶段：全量出片 vs 逐段确认 模式切换 */}
+          {stage === 1 && (
+            <div style={{ marginBottom: '15px', display: 'flex', gap: '10px' }}>
+              <button
+                onClick={() => setExecutionMode('batch')}
+                style={{
+                  flex: 1, padding: '12px', borderRadius: '8px',
+                  border: executionMode === 'batch' ? `2px solid ${AMBER}` : `1px solid ${BORDER}`,
+                  background: executionMode === 'batch' ? 'rgba(232,160,32,0.2)' : 'transparent',
+                  color: TEXT, cursor: 'pointer', fontSize: '13px'
+                }}
+              >
+                🚀 全量出片 (DeepSeek 模式)
+              </button>
+              <button
+                onClick={() => setExecutionMode('sequential')}
+                style={{
+                  flex: 1, padding: '12px', borderRadius: '8px',
+                  border: executionMode === 'sequential' ? `2px solid ${AMBER}` : `1px solid ${BORDER}`,
+                  background: executionMode === 'sequential' ? 'rgba(232,160,32,0.2)' : 'transparent',
+                  color: TEXT, cursor: 'pointer', fontSize: '13px'
+                }}
+              >
+                📑 逐段确认 (Claude 模式)
+              </button>
+            </div>
+          )}
+
+          <div style={{display: 'flex', gap: '10px'}}>
+            {stage === 1 && executionMode === 'sequential' ? (
+              <button onClick={startChunkProcess} disabled={loading || !inputs[1].trim()} style={{...styles.btn, flex: 1, background: "#4ade80", color: "#000", ...(loading || !inputs[1].trim() ? styles.btnDisabled : {})}}>
+                {loading ? "引擎运转中..." : "⚔️ 自动化切片推演 (防截断)"}
+              </button>
+            ) : stage === 2 ? (
+              /* 🌟 新增：第三阶段双语言按钮 🌟 */
+              <>
+                <button onClick={() => handleGenerate('zh')} disabled={loading || !inputs[stage].trim()} style={{...styles.btn, flex: 1, background: "#4ade80", color: "#000", ...(loading || !inputs[stage].trim() ? styles.btnDisabled : {})}}>
+                  {loading ? "引擎运转中..." : "🇨🇳 生成中文 JSON (即梦/Kling)"}
+                </button>
+                <button onClick={() => handleGenerate('en')} disabled={loading || !inputs[stage].trim()} style={{...styles.btn, flex: 1, background: "#8b5cf6", color: "#FFF", ...(loading || !inputs[stage].trim() ? styles.btnDisabled : {})}}>
+                  {loading ? "引擎运转中..." : "🇺🇸 生成英文 JSON (Midjourney)"}
+                </button>
+              </>
+            ) : (
+              <button onClick={() => handleGenerate()} disabled={loading || !inputs[stage].trim()} style={{...styles.btn, flex: 1, ...(loading || !inputs[stage].trim() ? styles.btnDisabled : {})}}>
+                {loading ? "引擎运转中..." : cur.action}
+              </button>
+            )}
+            <button onClick={handleClearMemory} style={{...styles.btnGhost, padding: '0 15px'}}>清空记忆</button>
+          </div>
+        </section>
+
+        <section style={styles.panel} ref={outputRef}>
+          <div style={styles.panelHeader}><div style={styles.panelTitle}>生成结果</div></div>
+          {outputs[stage] ? (
+            <><div style={styles.output} className="markdown-body"><ReactMarkdown remarkPlugins={[remarkGfm]}>{outputs[stage]}</ReactMarkdown></div>
+
+              {stage === 2 && outputs[stage] && (() => {
+                try {
+                  let jsonText = outputs[stage];
+
+                  // 🌟 新增：前端也必须剔除思考标签，否则 UI 解析会崩溃
+                  // 即使 </think> 还没输出完（流式生成中），也能把半截思考过程全杀掉
+                  jsonText = jsonText.replace(/<think>[\s\S]*?(<\/think>|$)/g, '');
+                  jsonText = jsonText.replace(/<thought>[\s\S]*?(<\/thought>|$)/g, '');
+
+                  if (jsonText.includes("```json")) {
+                    jsonText = jsonText.split("```json")[1].split("```")[0];
+                  } else if (jsonText.includes("```")) {
+                    jsonText = jsonText.split("```")[1].split("```")[0];
+                  }
+
+                  // 🌟 新增：自动寻找数组的起始点，忽略前面的废话
+                  const startIdx = jsonText.indexOf('[');
+                  if (startIdx !== -1) {
+                    jsonText = jsonText.substring(startIdx);
+                  }
+
+                  // 全局清洗：剔除零宽空格，防止 JSON.parse 失败
+                  jsonText = jsonText.replace(/​/g, '');
+                  const parsed = JSON.parse(jsonText);
+
+                  const requiredFields = ["fragment_id", "image_strategy", "source_fragment_id", "image_prompt", "negative_prompt"];
+
+                  const stats = parsed.map(shot => ({
+                    num: shot.fragment_id || "未知",
+                    phase: shot.image_strategy || "未定义",
+                    missing: requiredFields.filter(f => {
+                      // 下列字段在特定逻辑下允许为空字符串，只需校验字段 Key 是否存在
+                      if (["image_prompt", "source_fragment_id", "negative_prompt"].includes(f)) {
+                        return shot[f] === undefined;
+                      }
+                      return !shot[f] || shot[f] === "";
+                    })
+                  }));
+
+                  return (
+                    <div style={{
+                      background: "#0a0a0a", border: "1px solid #333",
+                      borderRadius: "6px", padding: "12px", marginTop: "10px",
+                      fontSize: "12px"
+                    }}>
+                      <div style={{color: "#E8A020", marginBottom: "8px", fontWeight: "bold"}}>
+                        JSON 质量预览 · {parsed.length} 个镜头
+                      </div>
+                      {stats.map(s => (
+                        <div key={s.num} style={{
+                          display: "flex", gap: "8px", alignItems: "center",
+                          padding: "4px 0", borderBottom: "1px solid #1a1a1a"
+                        }}>
+                          <span style={{color: "#888", width: "40px"}}>#{s.num}</span>
+                          <span style={{color: "#666", width: "100px"}}>{s.phase}</span>
+                          {s.missing.length > 0 ? (
+                            <span style={{color: "#ff4444"}}>
+                              缺少: {s.missing.join(", ")}
+                            </span>
+                          ) : (
+                            <span style={{color: "#44ff88"}}>✓ 字段完整</span>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  );
+                } catch (e) {
+                  return (
+                    <div style={{
+                      background: "rgba(239, 68, 68, 0.1)", border: "1px solid rgba(239, 68, 68, 0.3)",
+                      borderRadius: "6px", padding: "12px", marginTop: "10px", fontSize: "12px", color: "#ff8888"
+                    }}>
+                      ⚠️ JSON 尚未闭合或解析异常，AI 可能正在输出中。若长时间无响应或报错，请点击「接续生成」。
+                    </div>
+                  );
+                }
+              })()}
+
+              <div style={styles.outputActions}>
+                <button onClick={() => { navigator.clipboard.writeText(outputs[stage]); setCopied(true); setTimeout(() => setCopied(false), 2000); }} style={styles.btnGhost}>{copied ? "已复制" : "复制全文"}</button>
+                {stage === 1 && (
+                  <button
+                    onClick={() => {
+                      const text = outputs[stage];
+                      // 智能正则提取：匹配所有 "- **即梦直投词（严格 120-280 字）**：" 后面的内容，直到遇到下一个列表项或结束
+                      const regex = /- \*\*即梦直投词.*?\*\*：\n\s*([\s\S]*?)(?=\n##\s*\||$)/g;
+                      let match;
+                      const directParts = [];
+                      while ((match = regex.exec(text)) !== null) {
+                        directParts.push(match[1].trim());
+                      }
+
+                      if (directParts.length > 0) {
+                        navigator.clipboard.writeText(directParts.join("\n\n---\n\n"));
+                        setCopiedDirect(true);
+                        setTimeout(() => setCopiedDirect(false), 2000);
+                      } else {
+                        alert("未检测到标准格式的直投词！请等待生成完成。");
+                      }
+                    }}
+                    style={{...styles.btn, background: "#4ade80", color: "#000"}}
+                  >
+                    {copiedDirect ? "已复制" : "复制直投版（即梦专用）"}
+                  </button>
+                )}
+                <button onClick={handleContinue} disabled={loading} style={{...styles.btnGhost, color: "#4ade80", borderColor: "#4ade80", ...(loading ? {opacity: 0.5} : {})}}>
+                  {loading ? "无缝拼接中..." : "接续生成 (防截断)"}
+                </button>
+
+                {stage < 2 && <button onClick={() => {
+                  const next = [...inputs];
+                  let cleanedOutput = outputs[stage]
+                    .replace(/​/g, '')
+                    .replace(/> 🎬 引擎正在进行前置推演[\s\S]*?\n\n/g, '')
+                    .replace(/> 📝 规划推演完成[\s\S]*?\n\n/g, '')
+                    .trim();
+                  next[stage + 1] = cleanedOutput;
+                  setInputs(next);
+                  setStage(stage + 1);
+                }} style={{...styles.btn, marginLeft: 'auto'}}>传入下一阶段 →</button>}
+              </div></>
+          ) : (<div style={styles.empty}>输入内容并点击生成以开始 (已挂载 {selectedIPs.length} 个IP知识库)</div>)}
+        </section>
+      </main>
+
+      {showSettings && (
+        <div style={styles.modalOverlay}>
+          <div style={styles.modalContent}>
+            <div style={styles.modalHeader}>
+              <h2 style={{margin: 0, color: "#E8A020"}}>主引擎配置台 (异构模型节点矩阵)</h2>
+              <button onClick={() => setShowSettings(false)} style={styles.closeBtn}>×</button>
+            </div>
+            <div style={styles.modalBody}>
+              <div style={styles.configCard}>
+                <h3 style={styles.modalH3}>高级模型路由配置 (Model Routing)</h3>
+
+                <div style={{ display: 'flex', gap: '5px', background: '#000', padding: '4px', borderRadius: '6px', marginBottom: '15px' }}>
+                  {Object.entries(config.routes).map(([key, r]) => (
+                    <button
+                      key={key}
+                      onClick={() => setActiveRouteTab(key)}
+                      style={{ flex: 1, padding: '8px', border: 'none', borderRadius: '4px', fontSize: '12px', cursor: 'pointer', fontWeight: 'bold', background: activeRouteTab === key ? AMBER : 'transparent', color: activeRouteTab === key ? '#000' : MUTED }}
+                    >
+                      {r.name}
+                    </button>
+                  ))}
+                </div>
+
+                <div style={{ background: 'rgba(255,255,255,0.02)', padding: '15px', borderRadius: '8px', border: `1px solid ${BORDER}` }}>
+                  <div style={{ marginBottom: '10px' }}>
+                    <div style={{ fontSize: '12px', color: MUTED, marginBottom: '5px' }}>代理地址池 (Base URLs)</div>
+                    <textarea value={config.routes[activeRouteTab].url} onChange={e => setConfig(prev => ({...prev, routes: {...prev.routes, [activeRouteTab]: {...prev.routes[activeRouteTab], url: e.target.value}}}))} style={{ width: '100%', background: '#000', border: `1px solid ${BORDER}`, color: '#FFF', padding: '8px', borderRadius: '4px', resize: 'vertical', minHeight: '40px' }} placeholder="如: [https://api.openai.com/v1](https://api.openai.com/v1)" />
+                  </div>
+                  <div style={{ marginBottom: '10px' }}>
+                    <div style={{ fontSize: '12px', color: MUTED, marginBottom: '5px' }}>API Key 池 (API Keys)</div>
+                    <textarea value={config.routes[activeRouteTab].key} onChange={e => setConfig(prev => ({...prev, routes: {...prev.routes, [activeRouteTab]: {...prev.routes[activeRouteTab], key: e.target.value}}}))} style={{ width: '100%', background: '#000', border: `1px solid ${BORDER}`, color: '#FFF', padding: '8px', borderRadius: '4px', resize: 'vertical', minHeight: '40px' }} placeholder="如: sk-..." />
+                  </div>
+                  <div>
+                    <div style={{ fontSize: '12px', color: MUTED, marginBottom: '5px' }}>模型池 (Models)</div>
+                    <textarea value={config.routes[activeRouteTab].model} onChange={e => setConfig(prev => ({...prev, routes: {...prev.routes, [activeRouteTab]: {...prev.routes[activeRouteTab], model: e.target.value}}}))} style={{ width: '100%', background: '#000', border: `1px solid ${BORDER}`, color: '#FFF', padding: '8px', borderRadius: '4px', resize: 'vertical', minHeight: '40px' }} placeholder="如: gpt-4o" />
+                  </div>
+
+                  <div style={{ marginTop: '15px', display: 'flex', alignItems: 'center', gap: '10px', background: 'rgba(232,160,32,0.1)', padding: '10px', borderRadius: '6px', border: '1px solid rgba(232,160,32,0.3)' }}>
+                    <div style={{ fontSize: '13px', color: '#E8A020', fontWeight: 'bold' }}>🧠 开启深度思考模式 (仅限支持模型)</div>
+                    <label style={{ display: 'flex', alignItems: 'center', cursor: 'pointer', position: 'relative' }}>
+                      <input
+                        type="checkbox"
+                        checked={config.routes[activeRouteTab].is_thinking || false}
+                        onChange={e => setConfig(prev => ({
+                          ...prev,
+                          routes: {
+                            ...prev.routes,
+                            [activeRouteTab]: { ...prev.routes[activeRouteTab], is_thinking: e.target.checked }
+                          }
+                        }))}
+                        style={{ width: '18px', height: '18px', cursor: 'pointer', accentColor: '#E8A020' }}
+                      />
+                    </label>
+                    <span style={{ fontSize: '11px', color: MUTED }}>勾选后后台将附带 extra_body 触发 reasoning_content</span>
+                  </div>
+                </div>
+              </div>
+
+              <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '20px'}}>
+                <h3 style={{...styles.modalH3, marginTop: 0}}>核心系统提示词</h3>
+                <button onClick={() => {
+  if(window.confirm("确定恢复默认？")) {
+    const newConfig = { ...config, prompts: { ...DEFAULT_PROMPTS } };
+    setConfig(newConfig);
+    localStorage.setItem("micro_epic_config_v30", JSON.stringify(newConfig));
+  }
+}} style={styles.resetBtn}>恢复默认</button>
+              </div>
+              <div style={styles.promptTabs}>
+                {STAGES.map(s => (
+                  <div key={s.id} style={{marginBottom: '15px'}}>
+                    <label style={{color: '#E8A020', fontSize: '13px', display:'block', marginBottom:'5px'}}>{s.label}指令</label>
+                    <textarea style={styles.promptInput} value={config.prompts[s.id]} onChange={e => setConfig({...config, prompts: {...config.prompts, [s.id]: e.target.value}})} />
+                  </div>
+                ))}
+              </div>
+            </div>
+            <div style={styles.modalFooter}>
+              <button onClick={() => setShowSettings(false)} style={styles.btnGhost}>取消</button>
+              <button onClick={handleSaveConfig} style={styles.btn}>保存配置</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showRadar && (
+        <div style={styles.modalOverlay}>
+          <div style={{...styles.modalContent, width: '1000px'}}>
+            <div style={styles.modalHeader}>
+              <h2 style={{margin: 0, color: "#E8A020"}}>RAG 数据蒸馏引擎</h2>
+              <button onClick={() => setShowRadar(false)} style={styles.closeBtn}>×</button>
+            </div>
+            <div style={{...styles.modalBody, display: 'flex', gap: '20px'}}>
+              <div style={{flex: 1, display: 'flex', flexDirection: 'column', gap: '15px'}}>
+
+                {/* 🌟 核心修改点：三分天下按钮 🌟 */}
+                <div style={{display: 'flex', gap: '8px', padding: '4px', background: '#000', borderRadius: '6px'}}>
+                   <button onClick={() => {setRadarMode("json"); setWashResult(""); setWashJson("");}} style={{flex: 1, padding: '8px 4px', border: 'none', borderRadius: '4px', background: radarMode === "json" ? AMBER : "transparent", color: radarMode === "json" ? "#000" : MUTED, cursor: 'pointer', fontWeight: 'bold', fontSize: '12px'}}>1. 提取 JSON 范例</button>
+                   <button onClick={() => {setRadarMode("core"); setWashResult(""); setWashJson("");}} style={{flex: 1, padding: '8px 4px', border: 'none', borderRadius: '4px', background: radarMode === "core" ? AMBER : "transparent", color: radarMode === "core" ? "#000" : MUTED, cursor: 'pointer', fontWeight: 'bold', fontSize: '12px'}}>2. 提炼通用法则</button>
+                   <button onClick={() => {setRadarMode("ip"); setWashResult(""); setWashJson("");}} style={{flex: 1, padding: '8px 4px', border: 'none', borderRadius: '4px', background: radarMode === "ip" ? AMBER : "transparent", color: radarMode === "ip" ? "#000" : MUTED, cursor: 'pointer', fontWeight: 'bold', fontSize: '12px'}}>3. 逆向推演专属 IP</button>
+                </div>
+
+                <div style={{background: 'rgba(232,160,32,0.1)', padding: '15px', borderRadius: '6px', border: '1px dashed #E8A020'}}>
+                  {radarMode === "json" && (
+                    <p style={{color: '#4ade80', fontSize: '13px', margin: '0 0 10px 0'}}>
+                      💡 <b>局部高精提取：</b>由于 JSON 结构极为复杂，为防止大模型输出被截断，<b>请每次仅粘贴 3-5 个神级镜头的描述进行提取。</b>
+                    </p>
+                  )}
+                  {radarMode === "core" && (
+                    <p style={{color: '#D4D0C8', fontSize: '13px', margin: '0 0 10px 0'}}>将拉片内容提炼为通用分镜规律与美学法则，自动存入 <b>core/</b> 目录供所有项目复用。</p>
+                  )}
+                  {radarMode === "ip" && (
+                    <div style={{display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '10px'}}>
+                       <span style={{color: '#D4D0C8', fontSize: '13px'}}>建立圣经目标宇宙名称：</span>
+                       <input type="text" value={newIpName} onChange={e => setNewIpName(e.target.value)} style={{background: "#000", border: "1px solid #222226", color: "#FFF", padding: "10px 12px", borderRadius: "4px", fontSize: "13px", outline: "none", flex: 1}} placeholder="例如：刀盾狗宇宙" />
+                    </div>
+                  )}
+                  <textarea
+                    style={{background: "#000", border: "1px solid #222226", color: "#D4D0C8", padding: "12px", borderRadius: "4px", width: "100%", resize: "vertical", fontSize: "12px", outline: "none", boxSizing: "border-box", fontFamily: "inherit", height: '280px'}}
+                    value={rawAnalysisText}
+                    onChange={e => setRawAnalysisText(e.target.value)}
+                    placeholder={
+                      radarMode === "json" ? "粘贴 3-5 个镜头的动作大白话描述，引擎将其精准转换为 Few-Shot 范例..." :
+                      radarMode === "core" ? "粘贴长篇优秀视频拉片描述，提炼底层经验库法则..." :
+                      "粘贴您让Kimi/Qwen分析角色的原始反馈数据，引擎将其整理出 V3.0 专属圣经！"
+                    }
+                  />
+                </div>
+                <button onClick={handleWashText} disabled={washing || !rawAnalysisText.trim()} style={{background: AMBER, color: BG, border: "none", padding: "12px 24px", borderRadius: "6px", fontWeight: "bold", cursor: "pointer", width: '100%', ...(washing || !rawAnalysisText.trim() ? {opacity: 0.5, cursor: "not-allowed"} : {})}}>
+                  {washing ? "深度推理提炼中..." : (
+                    radarMode === "json" ? "提取 JSON 镜头范例" :
+                    radarMode === "core" ? "提取通用导演法则" :
+                    "四步执行提取IP圣经 V3.0"
+                  )}
+                </button>
+              </div>
+              
+              <div style={{flex: 1.2, background: '#000', border: '1px solid #222226', borderRadius: '6px', padding: '15px', overflowY: 'auto', maxHeight: '500px'}}>
+                {washResult ? (
+                  <div>
+                    <div className="markdown-body" style={{fontSize: '13px', whiteSpace: 'pre-wrap'}}><ReactMarkdown remarkPlugins={[remarkGfm]}>{washResult}</ReactMarkdown></div>
+                    {washJson && (
+                      <div style={{marginTop: '12px', position: 'relative'}}>
+                        <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px'}}>
+                          <span style={{color: '#8BC34A', fontSize: '12px', fontWeight: 'bold'}}>提取的镜头参数 JSON：</span>
+                          <button onClick={() => {navigator.clipboard.writeText(washJson);}} style={{background: '#333', color: '#ccc', border: '1px solid #555', borderRadius: '4px', padding: '3px 10px', fontSize: '12px', cursor: 'pointer'}}>复制</button>
+                        </div>
+                        <pre style={{background: '#0D0D0D', border: '1px solid #333', borderRadius: '4px', padding: '12px', overflowX: 'auto', fontSize: '12px', lineHeight: '1.5', maxHeight: '400px', overflowY: 'auto'}}><code style={{color: '#E0E0E0'}}>{washJson}</code></pre>
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <div style={{color: '#5A5750', textAlign: 'center', marginTop: '200px'}}>等待提炼素材...</div>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 自动化切片暂停确认弹窗 */}
+      {showChunkModal && (
+        <div style={styles.modalOverlay}>
+          <div style={{...styles.modalContent, width: '400px', padding: '30px', textAlign: 'center'}}>
+            <h3 style={{color: "#E8A020", marginTop: 0}}>切片生成暂停</h3>
+            <p style={{color: "#E4E4E7", fontSize: '14px', lineHeight: '1.6'}}>
+              ✅ <b>{chunkQueue[chunkIndex]?.join(" & ")}</b> 已完美推演并无缝拼接！<br/><br/>
+              即将推演下一组：<b>{chunkQueue[chunkIndex + 1]?.join(" & ")}</b><br/>
+              是否确认继续？
+            </p>
+            <div style={{display: 'flex', gap: '15px', justifyContent: 'center', marginTop: '25px'}}>
+              <button onClick={() => setShowChunkModal(false)} style={styles.btnGhost}>终止推演</button>
+              {/* 新增重试按钮 */}
+              <button
+                onClick={() => executeChunk(chunkQueue, chunkIndex, inputs[1])}
+                style={{...styles.btnGhost, color: '#ef4444', borderColor: 'rgba(239, 68, 68, 0.3)'}}
+              >
+                ↻ 重试本段
+              </button>
+              <button
+                onClick={() => {
+                  const nextIdx = chunkIndex + 1;
+                  setChunkIndex(nextIdx);
+                  executeChunk(chunkQueue, nextIdx, inputs[1]);
+                }}
+                style={styles.btn}
+              >
+                🚀 确认继续
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+const AMBER = "#E8A020";
+const AMBER_HOVER = "#FBBF24";
+const BG = "#09090B";
+const SURFACE = "#141417";
+const BORDER = "#27272A";
+const TEXT = "#E4E4E7";
+const MUTED = "#A1A1AA";
+
+const styles = {
+  root: { height: "100vh", width: "100vw", background: BG, color: TEXT, fontFamily: "'Noto Serif SC', serif", position: "relative", display: "flex", flexDirection: "column", overflow: "hidden" },
+  grain: { position: "fixed", inset: 0, backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.03'/%3E%3C/svg%3E")`, pointerEvents: "none", zIndex: 0 },
+
+  header: { borderBottom: "1px solid " + BORDER, padding: "16px 32px", display: "flex", justifyContent: "space-between", alignItems: "center", position: "relative", zIndex: 10, background: "rgba(9, 9, 11, 0.7)", backdropFilter: "blur(12px)" },
+  headerInner: { display: "flex", alignItems: "center", gap: 16 },
+  logo: { fontSize: 26, color: AMBER, textShadow: "0 0 15px rgba(232,160,32,0.4)" },
+  title: { fontSize: 18, fontWeight: "800", color: "#FFF", letterSpacing: "1px" },
+  titleSub: { fontSize: 12, color: AMBER, marginTop: 4, opacity: 0.8 },
+  settingsBtn: { background: "rgba(255,255,255,0.03)", color: TEXT, border: "1px solid " + BORDER, padding: "8px 18px", borderRadius: "6px", cursor: "pointer", transition: "all 0.2s ease", fontSize: "13px" },
+
+  nav: { display: "flex", borderBottom: "1px solid " + BORDER, position: "relative", zIndex: 1, background: SURFACE },
+  navBtn: { flex: 1, display: "flex", justifyContent: "center", alignItems: "center", gap: 12, padding: "16px 24px", background: "none", border: "none", borderRight: "1px solid " + BORDER, color: MUTED, cursor: "pointer", outline: "none", transition: "all 0.3s ease" },
+  navBtnActive: { color: "#FFF", background: "rgba(232,160,32,0.08)", boxShadow: "inset 0 -2px 0 " + AMBER },
+  navStep: { color: AMBER, fontSize: "12px", marginRight: "4px", fontWeight: "bold", opacity: 0.8 },
+
+  main: { display: "grid", gridTemplateColumns: "1fr 1.3fr", flex: 1, position: "relative", zIndex: 1, overflow: "hidden" },
+  panel: { padding: "24px 32px", borderRight: "1px solid " + BORDER, display: "flex", flexDirection: "column", gap: 16, overflowY: "auto", height: "100%", boxSizing: "border-box" },
+  panelHeader: { borderBottom: "1px solid " + BORDER, paddingBottom: "12px", display: "flex", justifyContent: "space-between", alignItems: "center" },
+  panelTitle: { fontSize: "16px", fontWeight: "bold", color: "#FFF", display: "flex", alignItems: "center", gap: "8px" },
+
+  textarea: { background: "rgba(0,0,0,0.3)", border: "1px solid " + BORDER, color: TEXT, padding: "20px", borderRadius: "8px", flex: 1, minHeight: "300px", resize: "none", outline: "none", lineHeight: 1.7, fontSize: "14px", transition: "border-color 0.3s ease" },
+
+  btn: { background: AMBER, color: "#000", border: "none", padding: "14px 28px", borderRadius: "6px", fontWeight: "bold", cursor: "pointer", transition: "all 0.2s ease", fontSize: "14px" },
+  btnDisabled: { opacity: 0.5, cursor: "not-allowed", filter: "grayscale(100%)" },
+  btnGhost: { background: "rgba(232,160,32,0.05)", color: AMBER, border: "1px solid rgba(232,160,32,0.3)", padding: "12px 20px", borderRadius: "6px", cursor: "pointer", outline: "none", transition: "all 0.2s ease", fontSize: "13px" },
+
+  output: { background: "rgba(0,0,0,0.2)", border: "1px solid " + BORDER, borderRadius: "8px", padding: "24px", flex: 1, overflowY: "auto", boxShadow: "inset 0 2px 15px rgba(0,0,0,0.2)" },
+  outputActions: { display: "flex", gap: "12px", marginTop: "16px", paddingTop: "16px", borderTop: "1px solid " + BORDER },
+  empty: { flex: 1, display: "flex", alignItems: "center", justifyContent: "center", color: BORDER, fontSize: "15px", fontWeight: "bold", letterSpacing: "1px" },
+
+  modalOverlay: { position: "fixed", top: 0, left: 0, right: 0, bottom: 0, background: "rgba(0,0,0,0.85)", zIndex: 999, display: "flex", justifyContent: "center", alignItems: "center", backdropFilter: "blur(8px)" },
+  modalContent: { background: SURFACE, border: "1px solid " + BORDER, borderRadius: "12px", width: "850px", maxWidth: "95%", maxHeight: "90vh", display: "flex", flexDirection: "column", boxShadow: "0 20px 50px rgba(0,0,0,0.7)" },
+  modalHeader: { padding: "20px 32px", borderBottom: "1px solid " + BORDER, display: "flex", justifyContent: "space-between", alignItems: "center", background: "rgba(255,255,255,0.02)" },
+  closeBtn: { background: "none", border: "none", color: MUTED, fontSize: "28px", cursor: "pointer", outline: "none", transition: "color 0.2s ease" },
+  modalBody: { padding: "32px", overflowY: "auto", flex: 1 },
+  modalH3: { fontSize: "15px", color: AMBER, marginTop: "0", marginBottom: "20px", borderBottom: "1px solid " + BORDER, paddingBottom: "10px", fontWeight: "bold" },
+  configCard: { background: "rgba(0,0,0,0.3)", border: "1px solid " + BORDER, padding: "20px", borderRadius: "8px", marginBottom: "24px" },
+  inputGroup: { display: "flex", flexDirection: "column", gap: "8px", marginBottom: "16px" },
+  row: { display: "flex", gap: "20px" },
+  promptTabs: { background: "rgba(0,0,0,0.2)", padding: "20px", borderRadius: "8px", border: "1px solid " + BORDER },
+  promptInput: { background: "#000", border: "1px solid " + BORDER, color: TEXT, padding: "16px", borderRadius: "6px", width: "100%", resize: "vertical", fontSize: "13px", outline: "none", boxSizing: "border-box", fontFamily: "inherit", lineHeight: 1.6 },
+  resetBtn: { background: "transparent", border: "none", color: "#ef4444", fontSize: "13px", cursor: "pointer", outline: "none", opacity: 0.8 },
+  modalFooter: { padding: "20px 32px", borderTop: "1px solid " + BORDER, display: "flex", justifyContent: "flex-end", gap: "16px", background: "rgba(0,0,0,0.2)" }
+};
+
+if (typeof document !== "undefined") {
+  const existingTag = document.getElementById("micro-epic-styles");
+  if (existingTag) existingTag.remove();
+
+  const styleTag = document.createElement("style");
+  styleTag.id = "micro-epic-styles";
+  styleTag.textContent = "" +
+    "::-webkit-scrollbar { width: 8px; height: 8px; }\n" +
+    "::-webkit-scrollbar-track { background: transparent; }\n" +
+    "::-webkit-scrollbar-thumb { background: " + BORDER + "; border-radius: 4px; }\n" +
+    "::-webkit-scrollbar-thumb:hover { background: " + MUTED + "; }\n" +
+    "button { transition: all 0.2s ease-in-out !important; }\n" +
+    "button:not([disabled]):hover { transform: translateY(-1px); }\n" +
+    "button[style*='background: " + AMBER + "']:not([disabled]):hover { background: " + AMBER_HOVER + " !important; box-shadow: 0 4px 15px rgba(232,160,32,0.3); }\n" +
+    "button[style*='border: 1px solid rgba(232,160,32,0.3)']:not([disabled]):hover { background: rgba(232,160,32,0.15) !important; }\n" +
+    ".closeBtn:hover { color: #FFF !important; transform: none !important; }\n" +
+    "textarea:focus { border-color: " + AMBER + " !important; box-shadow: inset 0 0 0 1px rgba(232,160,32,0.2); }\n" +
+    ".markdown-body { color: " + TEXT + "; }\n" +
+    ".markdown-body h1, .markdown-body h2, .markdown-body h3 { color: #FFF; margin-top: 0; padding-bottom: 8px; border-bottom: 1px solid " + BORDER + "; }\n" +
+    ".markdown-body h4 { color: " + AMBER + "; }\n" +
+    ".markdown-body strong { color: " + AMBER + "; }\n" +
+    ".markdown-body table { width: 100%; border-collapse: collapse; margin-bottom: 20px; font-size: 13px; border-radius: 8px; overflow: hidden; }\n" +
+    ".markdown-body th, .markdown-body td { border: 1px solid " + BORDER + "; padding: 12px 16px; text-align: left; }\n" +
+    ".markdown-body th { background: rgba(232,160,32,0.1); color: " + AMBER + "; font-weight: bold; }\n" +
+    ".markdown-body tr:nth-child(even) { background: rgba(255,255,255,0.02); }\n" +
+    ".markdown-body pre { background: #000 !important; padding: 16px; border-radius: 8px; overflow-x: auto; border: 1px solid " + BORDER + "; box-shadow: inset 0 2px 10px rgba(0,0,0,0.5); }\n" +
+    ".markdown-body code { font-family: 'Fira Code', monospace; color: " + AMBER_HOVER + "; white-space: pre-wrap; font-size: 12px; }\n" +
+    ".markdown-body p code { background: rgba(232,160,32,0.1); padding: 2px 6px; border-radius: 4px; border: 1px solid rgba(232,160,32,0.2); }\n" +
+    ".markdown-body blockquote { border-left: 4px solid " + AMBER + "; padding-left: 16px; color: " + MUTED + "; background: rgba(232,160,32,0.05); margin: 0 0 16px 0; padding: 12px 16px; border-radius: 0 6px 6px 0; }\n";
+  document.head.appendChild(styleTag);
+}

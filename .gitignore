@@ -1,0 +1,45 @@
+# Dependencies / build output
+frontend/storyboard-ui/node_modules/
+frontend/storyboard-ui/dist/
+frontend/storyboard-ui/.vite/
+
+# Python cache / virtualenv
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+
+# Runtime outputs and local generated assets
+outputs/
+chroma_db/
+image_registry.json
+*.log
+*.err.log
+
+# Temporary recovery / scratch files
+recovery/
+tmp_pdf_pages/
+tmp_success_videos/
+tmp_video_frames/
+*.bak
+*.bak.*
+*.original
+*.latest.*
+*.latest.jsx
+*.latest.py
+_*.py
+_temp_*.txt
+proxy]
+
+# Large media / local experiments
+*.mp4
+*.mov
+*.avi
+*.mkv
+
+# Local/editor/system files
+.DS_Store
+Thumbs.db
+.vscode/
+.env
+.env.*

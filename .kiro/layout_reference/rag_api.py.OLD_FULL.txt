@@ -1,0 +1,1488 @@
+import os
+import glob
+import json
+import random
+import asyncio
+import re
+import time
+import traceback
+import httpx
+from datetime import datetime
+from collections import deque
+from openai import AsyncOpenAI
+from anthropic import AsyncAnthropic
+from fastapi import FastAPI, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import StreamingResponse
+from pydantic import BaseModel
+from typing import Dict, Optional
+import uvicorn
+
+# ---------- 1. 核心系统初始化 ----------
+app = FastAPI(title="Micro Epic Engine API")
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+shared_http_client = httpx.AsyncClient(
+    limits=httpx.Limits(max_keepalive_connections=100, max_connections=200),
+    timeout=httpx.Timeout(300.0)  # 延长到300s，给复杂JSON生成留足时间
+)
+
+# ---------- 2. 目录物理隔离 (核心层 vs IP专属层 vs 动态蒸馏层) ----------
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+
+KB_CORE_DIR = os.path.join(BASE_DIR, "knowledge", "core")         # 【绝对只读】人类专家打磨的V5黄金法则
+KB_IP_DIR = os.path.join(BASE_DIR, "knowledge", "ip")             # IP专属圣经
+KB_DISTILLED_DIR = os.path.join(BASE_DIR, "knowledge", "distilled") # 【新增】AI自动蒸馏的动态草稿区
+EX_CORE_DIR = os.path.join(BASE_DIR, "examples", "core")
+EX_IP_DIR = os.path.join(BASE_DIR, "examples", "ip")
+
+# 确保目录存在
+for d in [KB_CORE_DIR, KB_IP_DIR, KB_DISTILLED_DIR, EX_CORE_DIR, EX_IP_DIR]:
+    os.makedirs(d, exist_ok=True)
+OUTPUTS_DIR = os.path.join(BASE_DIR, "outputs")
+os.makedirs(OUTPUTS_DIR, exist_ok=True)
+
+run_folders: dict[str, str] = {}
+
+STAGE_FILE_MAP = {
+    "script": "剧本.md",
+    "shot": "分镜.md",
+    "prompt": "json首帧图.json",
+    "jimeng": "即梦提示词_完整版.md",
+    "jimeng_direct": "即梦提示词_直投版.md",
+    "render": "即梦提示词_豆包精炼版.md",
+}
+
+
+def save_generated_content(stage: str, content: str, run_id: str = "") -> str:
+    """自动存档：将生成内容按 总文件夹/日期时间/ 结构保存"""
+    if len(run_folders) > 1000:
+        run_folders.pop(next(iter(run_folders)))
+
+    now = datetime.now()
+    if run_id and run_id in run_folders:
+        folder_path = run_folders[run_id]
+    else:
+        folder_name = now.strftime("%Y-%m-%d_%H%M%S")
+        folder_path = os.path.join(OUTPUTS_DIR, folder_name)
+        os.makedirs(folder_path, exist_ok=True)
+        if run_id:
+            run_folders[run_id] = folder_path
+
+    filename = STAGE_FILE_MAP.get(stage, f"{stage}.txt")
+    filepath = os.path.join(folder_path, filename)
+
+    # 全局清洗：剔除防断连心跳产生的零宽空格
+    clean_content = content.replace('​', '')
+
+    with open(filepath, "w", encoding="utf-8") as f:
+        f.write(clean_content)
+
+    print(f"[自动存档] {stage} → {filepath}")
+    return folder_path
+
+
+def extract_jimeng_direct_prompt(full_response: str) -> str:
+    """从V4分镜单中提取纯净的即梦直投词"""
+    # 🌟 修复：加入 \n##\s*\| 和 \Z 作为多重停止锚点，防止跨片段过度捕获
+    pattern = r'-\s*\*\*即梦直投词.*?\*\*：\n\s*([\s\S]*?)(?=\n##\s*\||\Z)'
+    matches = re.findall(pattern, full_response)
+
+    direct_prompts = [m.strip() for m in matches if m.strip()]
+    return "\n\n---\n\n".join(direct_prompts)
+
+conversation_histories: dict[str, deque] = {}
+MAX_TURNS = 20
+
+# 🌟 Prompt Cache 优化：会话级 system prompt 缓存
+# 结构: {session_id: {"hash": str, "system_blocks": list, "full_text": str}}
+# Claude 使用 system_blocks (含 cache_control)，OpenAI 兼容使用 full_text
+_system_prompt_cache: dict[str, dict] = {}
+
+
+def _build_system_blocks(context: str, example_block: str, sys_prompt: str) -> list[dict]:
+    """
+    为 Claude API 构建带 cache_control 的 system blocks。
+    知识库部分标记为 ephemeral，让后续相同前缀请求命中 prompt cache。
+    """
+    parts = []
+    kb_text = f"【全局知识库参考资料 (包含通用法则与IP专属约束)】\n<knowledge_base>\n{context}\n</knowledge_base>"
+    if example_block:
+        kb_text += f"\n{example_block}"
+
+    parts.append({
+        "type": "text",
+        "text": kb_text,
+        "cache_control": {"type": "ephemeral"}
+    })
+
+    task_text = (
+        "======================================\n"
+        f"【当前阶段核心任务与指令】\n{sys_prompt}\n"
+        "【最高优先级格式警告】：必须严格遵循格式，严禁中途截断或反问！"
+    )
+    parts.append({
+        "type": "text",
+        "text": task_text
+    })
+    return parts
+
+
+def _get_system_prompt_cache_key(context: str, example_block: str, sys_prompt: str) -> str:
+    """生成 system prompt 的哈希键，用于判断是否可以复用缓存。"""
+    import hashlib
+    raw = f"{context}||{example_block}||{sys_prompt}"
+    return hashlib.md5(raw.encode("utf-8")).hexdigest()
+
+STAGE_TEMPERATURES = {
+    "script": 0.75,
+    "shot": 0.55,
+    "prompt": 0.20,
+    "jimeng": 0.30,
+    "render": 0.30,
+}
+
+# 🌟 14字段 JSON Schema（供 Claude 原生结构化输出 & DeepSeek JSON 模式使用）
+FOURTEEN_FIELD_SCHEMA = {
+    "type": "array",
+    "items": {
+        "type": "object",
+        "properties": {
+            "shot_number": {"type": "string"},
+            "shot_duration": {"type": "string"},
+            "shot_type": {"type": "string", "enum": ["action_peak", "static_hold", "transition_bridge", "soft_reaction"]},
+            "director_insight": {"type": "string"},
+            "transition_in": {"type": "string"},
+            "narrative_action": {"type": "string"},
+            "narrative_action_visual": {"type": "string"},
+            "keyframe_phase": {"type": "string", "enum": ["蓄力前静止", "动作峰值", "余波起始"]},
+            "首帧图": {"type": "string"},
+            "kling_prompt": {"type": "string"},
+            "audio_sfx": {"type": "string"},
+            "logic_explanation": {"type": "string"},
+            "consistency_anchor": {"type": "string"},
+            "transition_out": {"type": "string"}
+        },
+        "required": [
+            "shot_number", "shot_duration", "shot_type", "keyframe_phase",
+            "director_insight", "transition_in", "narrative_action",
+            "narrative_action_visual", "首帧图",
+            "kling_prompt", "audio_sfx", "logic_explanation",
+            "consistency_anchor", "transition_out"
+        ],
+        "additionalProperties": False
+    }
+}
+
+# 🌟 极简 5 字段 JSON Schema（带尾帧溯源与 MJ 负面参数隔离）
+FIVE_FIELD_SCHEMA = {
+    "type": "array",
+    "items": {
+        "type": "object",
+        "properties": {
+            "fragment_id": {"type": "string"},
+            "image_strategy": {"type": "string", "enum": ["generate_new_image", "use_tail_frame"]},
+            "source_fragment_id": {"type": "string"},
+            "image_prompt": {"type": "string"},
+            "negative_prompt": {"type": "string"}
+        },
+        "required": ["fragment_id", "image_strategy", "source_fragment_id", "image_prompt", "negative_prompt"],
+        "additionalProperties": False
+    }
+}
+
+# 知识库单文件体积上限（超出时自动裁剪，保留后2/3内容）
+MAX_KB_FILE_BYTES = 60000
+
+# ---------- 3. 动态按需读取知识库 ----------
+async def load_knowledge_for_stage(stage: str, ip_names: list[str]) -> str:
+    # 每个阶段只加载真正需要的库，避免注意力稀释
+    # 阶段设计原则：剧本阶段不给生图/视频参数，生图阶段不给叙事理论
+    stage_kb_map = {
+        "script": ["叙事节拍库.md"],
+        # 分镜阶段：引入终极手册，学习景别跳跃与空镜禁令
+        "shot":   ["叙事节拍库.md", "即梦Seedance2.0提示词终极手册（进化版V4）.md"],
+        # 🌟 Prompt阶段：纯场景空镜底板，只加载美学库
+        "prompt": ["视觉美学风格库.md"],
+        "jimeng": ["即梦Seedance2.0提示词终极手册（进化版V4）.md"],
+        "render": [],
+    }
+
+    target_filenames = stage_kb_map.get(stage, [])
+
+    # ━━━ 第一层级：核心铁律（按阶段选择性加载）━━━
+    core_text = ""
+    for filename in target_filenames:
+        core_path = os.path.join(KB_CORE_DIR, filename)
+        if os.path.exists(core_path):
+            try:
+                with open(core_path, "r", encoding="utf-8") as f:
+                    core_text += f.read() + "\n\n"
+            except Exception:
+                pass
+
+    # ━━━ 第二层级：蒸馏草稿（按需过滤加载）━━━
+    distilled_text = ""
+    if os.path.exists(KB_DISTILLED_DIR):
+        for filename in os.listdir(KB_DISTILLED_DIR):
+            if not filename.endswith(".md"):
+                continue
+
+            # 🛡️ 核心补丁：剧本阶段绝对屏蔽视觉、美学、执行类蒸馏法则！
+            if stage == "script" and any(kw in filename for kw in ["视觉", "美学", "执行", "即梦", "案例"]):
+                continue
+            # 分镜阶段屏蔽纯美学法则
+            if stage == "shot" and "美学" in filename:
+                continue
+
+            try:
+                with open(os.path.join(KB_DISTILLED_DIR, filename), "r", encoding="utf-8") as f:
+                    distilled_text += f.read() + "\n\n"
+            except Exception:
+                pass
+
+    # ━━━ IP专属圣经（按阶段屏蔽）━━━
+    ip_text = ""
+    # 🌟 核心拦截：如果是生场景图(prompt)阶段，绝对不加载角色圣经，防止AI在背景里画出猫狗！
+    if stage != "prompt":
+        for ip_name in ip_names:
+            if ip_name and ip_name != "通用新IP项目":
+                ip_path = os.path.join(KB_IP_DIR, ip_name)
+                if os.path.exists(ip_path):
+                    for md_file in glob.glob(os.path.join(ip_path, "*.md")):
+                        try:
+                            with open(md_file, "r", encoding="utf-8") as f:
+                                ip_text += f.read() + "\n\n"
+                        except Exception:
+                            pass
+
+    if not core_text and not distilled_text and not ip_text:
+        return "（当前无知识库文件）"
+
+    # ━━━ 结构化组合（确立权重优先级）━━━
+    parts = []
+    if core_text:
+        parts.append(f"""━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+【第一层级：绝对核心铁律 (必须100%遵守)】
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+以下法则为导演人工校准的底层逻辑，拥有最高优先级，任何情况下不得违背：
+{core_text}""")
+    if ip_text:
+        parts.append(f"""━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+【IP专属设定 (硬约束)】
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+{ip_text}""")
+    if distilled_text:
+        parts.append(f"""━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+【第二层级：最新动态参考 (仅供灵感补充)】
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+以下为近期拉片提取的补充灵感。当且仅当其不违背上述【核心铁律】时，可选择性采纳：
+{distilled_text}""")
+
+    return "\n".join(parts)
+
+
+def get_random_few_shot_example(ip_names: list[str], shot_type: str = "") -> str:
+    # 按类型子目录查找 JSON 范例
+    example_files = []
+    for subdir in ["action_peak", "static_hold", "transition_bridge", "soft_reaction"]:
+        type_dir = os.path.join(EX_CORE_DIR, subdir)
+        if os.path.exists(type_dir):
+            example_files.extend(glob.glob(os.path.join(type_dir, "*.json")))
+
+    # 也检查根目录下的 JSON 文件（兼容旧格式）
+    example_files.extend(glob.glob(os.path.join(EX_CORE_DIR, "*.json")))
+
+    for ip_name in ip_names:
+        if ip_name and ip_name != "通用新IP项目":
+            ip_path = os.path.join(EX_IP_DIR, ip_name)
+            if os.path.exists(ip_path):
+                example_files.extend(glob.glob(os.path.join(ip_path, "**", "*.json"), recursive=True))
+
+    if not example_files:
+        return "（当前无缓存范例）"
+
+    # 优先匹配 shot_type
+    if shot_type:
+        matched = [f for f in example_files if shot_type in f]
+        if matched:
+            example_files = matched
+
+    chosen_file = random.choice(example_files)
+    try:
+        with open(chosen_file, "r", encoding="utf-8") as f:
+            return f.read()
+    except:
+        return "（范例读取失败）"
+
+
+def trim_kb_file_if_needed(filepath: str):
+    """
+    知识库体积守卫：当文件超过 MAX_KB_FILE_BYTES 时，
+    自动丢弃前 1/3 的旧内容，只保留后 2/3 的最新法则。
+    避免随洗稿次数增多导致 token 爆炸和法则互相干扰。
+    """
+    try:
+        if not os.path.exists(filepath):
+            return
+        size = os.path.getsize(filepath)
+        if size > MAX_KB_FILE_BYTES:
+            with open(filepath, "r", encoding="utf-8") as f:
+                content = f.read()
+            keep_from = len(content) // 3
+            trimmed = (
+                f"<!-- 旧内容已自动归档，以下为最新法则"
+                f"（自动裁剪于 {datetime.now().strftime('%Y-%m-%d %H:%M')}） -->\n\n"
+                + content[keep_from:]
+            )
+            with open(filepath, "w", encoding="utf-8") as f:
+                f.write(trimmed)
+            print(f"[体积守卫] 已自动裁剪知识库: {os.path.basename(filepath)} "
+                  f"({size} → {len(trimmed.encode())} bytes)")
+    except Exception as e:
+        print(f"[体积守卫] 裁剪失败 {filepath}: {e}")
+
+
+# ---------- 4. 接口模型与智能并发引擎 ----------
+class RouteConfig(BaseModel):
+    name: str = ""
+    url: str = ""
+    key: str = ""
+    model: str = ""
+    is_thinking: bool = False  # 🌟 深度思考开关：启用后注入 extra_body 触发 reasoning_content
+
+class GenerateRequest(BaseModel):
+    stage: str
+    input: str
+    session_id: str = "default_session"
+    system_prompt: str
+    ip_names: list[str] = []
+    run_id: str = ""
+    routes: Dict[str, RouteConfig] = {}
+    execution_mode: str = "sequential"  # 'sequential' = 逐段推演 / 'batch' = 全量出片
+    segments: list[str] = []
+
+class ClearMemoryRequest(BaseModel):
+    session_id: str
+
+class WashExampleRequest(BaseModel):
+    raw_text: str
+    ip_name: str = "core"
+    routes: Dict[str, RouteConfig] = {}
+
+
+# 🌟 核心算法升级：节点矩阵自动对齐
+def get_api_nodes(api_key_str: str, base_url_str: str, model_str: str):
+    clean_keys = api_key_str.replace('\n', ',')
+    clean_urls = base_url_str.replace('\n', ',')
+    clean_models = model_str.replace('\n', ',')
+
+    keys = [k.strip() for k in clean_keys.split(",") if k.strip()]
+    urls = [u.strip() for u in clean_urls.split(",") if u.strip()]
+    models = [m.strip() for m in clean_models.split(",") if m.strip()]
+
+    if not keys:
+        return []
+
+    if not urls: urls = [None]
+    if not models: models = ["gpt-3.5-turbo"]
+
+    nodes = []
+    max_len = max(len(keys), len(urls), len(models))
+    for i in range(max_len):
+        k = keys[i] if i < len(keys) else keys[-1]
+        u = urls[i] if i < len(urls) else urls[-1]
+        m = models[i] if i < len(models) else models[-1]
+        nodes.append({"key": k, "url": u, "model": m})
+
+    return nodes
+
+
+# 🌟 核心算法升级：节点矩阵自动对齐、Token 锁阀与双轨智能路由
+async def safe_api_call(
+    nodes: list[dict],
+    messages: list,
+    temperature: float,
+    max_tokens: int = 2048,
+    max_retries: int = 3,
+    *,
+    system_blocks: list[dict] | None = None,
+) -> str:
+    """
+    双轨智能 API 调用，支持 Claude 原生 prompt caching。
+
+    Args:
+        system_blocks: 仅用于 Claude 模型。当提供时，使用 Anthropic 的 block 格式
+                       传递 system prompt，并在知识库部分注入 cache_control。
+                       此时 messages 中不应包含 role=system 的消息。
+    """
+    start_index = random.randint(0, len(nodes) - 1)
+
+    for attempt in range(max_retries):
+        node = nodes[(start_index + attempt) % len(nodes)]
+        model_name_lower = node["model"].lower()
+
+        try:
+            if attempt > 0:
+                await asyncio.sleep(random.uniform(0.5, 1.5))
+
+            # 🛡️ 双轨识别：Claude 原生 vs OpenAI 兼容
+            if "claude" in model_name_lower:
+                user_msgs = [m for m in messages if m["role"] != "system"]
+
+                client = AsyncAnthropic(
+                    api_key=node["key"],
+                    base_url=node["url"] if node.get("url") else None
+                )
+
+                call_kwargs = {
+                    "model": node["model"],
+                    "messages": user_msgs,
+                    "temperature": temperature,
+                    "max_tokens": min(max_tokens, 8192),  # Claude API 硬上限，超出抛 400
+                }
+
+                # 🌟 Prompt Caching：使用 block 格式传递 system，知识库部分标记缓存断点
+                if system_blocks is not None:
+                    call_kwargs["system"] = system_blocks
+                else:
+                    # 兼容旧调用：从 messages 中提取 system
+                    sys_prompt = "\n".join([m["content"] for m in messages if m["role"] == "system"]).strip()
+                    call_kwargs["system"] = sys_prompt
+
+                response = await client.messages.create(**call_kwargs)
+                content = response.content[0].text if response.content else ""
+
+            else:
+                client = AsyncOpenAI(
+                    api_key=node["key"],
+                    base_url=node["url"] if node.get("url") else None,
+                    http_client=shared_http_client
+                )
+                response = await client.chat.completions.create(
+                    model=node["model"],
+                    messages=messages,
+                    temperature=temperature,
+                    max_tokens=max_tokens
+                )
+                content = response.choices[0].message.content
+
+            if not content or not content.strip():
+                raise ValueError("API 返回了空数据")
+            return content
+
+        except Exception as e:
+            if attempt == max_retries - 1:
+                raise e
+            print(f"节点受限，触发异构灾备秒切... 失败节点:[{node['model']}], 错误:{str(e)[:40]}")
+            await asyncio.sleep(1)
+
+
+async def check_and_deduplicate_kb(filepath: str, new_content: str, nodes: list[dict]) -> str:
+    """
+    在写入新法则前，检查是否与现有内容高度重复
+    如果重复度过高，返回去重后的内容或跳过写入
+
+    使用字符级 N-gram 比对，对中文/英文混合文本均有效。
+    """
+    if not os.path.exists(filepath):
+        return new_content
+
+    with open(filepath, "r", encoding="utf-8") as f:
+        existing = f.read()
+
+    def char_ngrams(s: str, n: int = 2) -> set[str]:
+        """提取字符 N-gram，对中文和英文混合文本均适用"""
+        cleaned = re.sub(r'\s+', '', s)  # 去掉空白，避免空格 n-gram 噪音
+        if len(cleaned) < n:
+            return {cleaned}
+        return {cleaned[i:i + n] for i in range(len(cleaned) - n + 1)}
+
+    # 新内容取头部采样，现有内容取尾部采样
+    new_sample = new_content[:500]
+    existing_tail = existing[-5000:]
+
+    if len(new_sample) < 10:
+        return new_content  # 太短不检测
+
+    new_ngrams = char_ngrams(new_sample)
+    existing_ngrams = char_ngrams(existing_tail)
+
+    if not new_ngrams:
+        return new_content
+
+    # Jaccard 相似度
+    overlap = len(new_ngrams & existing_ngrams) / len(new_ngrams)
+
+    if overlap > 0.5:  # 50%以上字符 n-gram 重叠，认为是重复内容
+        print(f"[去重守卫] 检测到高度重复内容（n-gram重叠率{overlap:.0%}），跳过写入: {os.path.basename(filepath)}")
+        return None  # 返回None表示跳过
+
+    return new_content
+
+
+def _trim_to_last_complete_json(text: str) -> str:
+    """裁剪到最后一个完整的 JSON 对象，用于接续生成时清洗历史。
+    保留末尾逗号但不闭合数组，让模型清楚感知到"还有内容未完成"。
+    """
+    text = text.replace('​', '').replace('‌', '').replace('‍', '').replace('﻿', '')
+    if not text.strip():
+        return text
+    start = text.find('[')
+    if start == -1:
+        return text
+    # 从后往前找最后一个 },  表示一个完整对象结束且后面还有更多对象
+    last_complete = text.rfind('},')
+    if last_complete > start:
+        # 截取到 }, 之后（含逗号），不闭合 ]，模型看到的是开放数组
+        trimmed = text[:last_complete + 2] + '\n'
+        return trimmed
+    # 没有任何完整对象的断裂 JSON，返回空字符串让历史清理逻辑丢弃此条目，
+    # 防止模型看到残缺 JSON 后产生"重写"而非"续写"的幻觉
+    return ""
+
+
+def sanitize_error_msg(msg: str) -> str:
+    """清洗异常消息，防止 API Key 等敏感信息泄露到前端"""
+    # 用正则匹配 sk- 开头的 key 并替换
+    msg = re.sub(r'sk-[A-Za-z0-9_-]{20,}', '[API_KEY_REDACTED]', msg)
+    # 匹配可能出现的 Authorization header
+    msg = re.sub(r'Bearer\s+[A-Za-z0-9_-]{20,}', 'Bearer [REDACTED]', msg)
+    # 截断过长的错误消息（可能是 API 返回的完整 HTML/JSON）
+    if len(msg) > 300:
+        msg = msg[:300] + "..."
+    return msg
+
+
+def extract_json(text: str) -> str:
+    """从模型输出中提取并修复JSON"""
+    # 全局清洗：剔除所有防断连零宽空格，防止 JSON.parse 失败
+    text = text.replace('​', '').replace('‌', '').replace('‍', '').replace('﻿', '')
+    text = text.strip()
+
+    # 🌟 清除 DeepSeek R1 / Qwen3 等推理模型的思考过程标签
+    # 处理 <think>...</think> 和 <｜end▁of▁thinking｜> 两种格式
+    text = re.sub(r'<think>[\s\S]*?</think>', '', text)
+    text = re.sub(r'<thought>[\s\S]*?</thought>', '', text)
+    text = re.sub(r'<reasoning>[\s\S]*?</reasoning>', '', text)
+    text = re.sub(r'```think[\s\S]*?```', '', text)
+
+    # 去掉 markdown 代码块
+    if "```json" in text:
+        text = text.split("```json")[1].split("```")[0].strip()
+    elif "```" in text:
+        text = text.split("```")[1].split("```")[0].strip()
+
+    # 🌟 修复：DeepSeek 思考模式可能输出 preamble 废话，直接定位到第一个 [
+    bracket_idx = text.find('[')
+    if bracket_idx > 0:
+        text = text[bracket_idx:]
+
+    # 找到JSON数组（优先匹配包含对象的数组，兜底匹配任何数组）
+    match = re.search(r'\[\s*\{.*\}\s*\]', text, re.DOTALL)
+    if not match:
+        # 兜底：匹配任何 JSON 数组
+        match = re.search(r'\[.*\]', text, re.DOTALL)
+    if match:
+        text = match.group(0)
+
+    # 尝试修复截断的JSON
+    try:
+        json.loads(text)
+        return text
+    except json.JSONDecodeError as e:
+        # 如果是截断导致的，尝试找到最后一个完整的对象
+        last_complete = text.rfind('},')
+        if last_complete > 0:
+            truncated = text[:last_complete + 1] + ']'
+            try:
+                json.loads(truncated)
+                print(f"[JSON修复] 检测到截断，已修复至最后完整对象")
+                return truncated
+            except:
+                pass
+
+        # 无法修复，返回空数组
+        print(f"[JSON修复] 无法修复，返回空数组。原始错误：{e}")
+        return "[]"
+
+
+@app.get("/get_available_ips")
+def get_available_ips():
+    try:
+        ips = []
+        if os.path.exists(KB_IP_DIR):
+            for name in os.listdir(KB_IP_DIR):
+                if os.path.isdir(os.path.join(KB_IP_DIR, name)):
+                    ips.append(name)
+        return {"status": "success", "ips": ips}
+    except Exception as e:
+        return {"status": "error", "detail": str(e)}
+
+
+# ---------- 5. 四段式生产引擎 ----------
+@app.post("/generate")
+async def generate_endpoint(req: GenerateRequest):
+    route = req.routes.get(req.stage)
+    if not route or not route.key:
+        raise HTTPException(status_code=400, detail=f"请先在系统设置中配置 [{req.stage}] 阶段的模型路由 API Key！")
+    nodes = get_api_nodes(route.key, route.url, route.model)
+    if not nodes:
+        raise HTTPException(status_code=400, detail="解析 API 节点失败，请检查配置。")
+
+    print(f"\n收到生成请求: [{req.stage}] | 挂载IP: {req.ip_names}")
+
+    async def generate_stream():
+        full_response = ""
+        try:
+            # ==========================================
+            # 第一阶段：预处理与上下文构建（只执行一次，避免重复消耗 Token）
+            # ==========================================
+            context = await load_knowledge_for_stage(req.stage, req.ip_names)
+
+            example_block = ""  # V4架构已采用极简3字段，无需复杂的Few-Shot范例注入
+
+            enhanced_input = req.input
+            is_sequential_shot = req.stage == "shot" and req.execution_mode == "sequential" and req.segments
+
+            if req.stage == "shot":
+                # 【核心修复】：增加 "自动化分段" 判定，切片模式下跳过无意义的预推演
+                if "系统最高防断裂指令" not in req.input and "自动化分段" not in req.input and not is_sequential_shot:
+                    # 正常生成流程：先给前端吐字，保持心跳，防止超时断连！
+                    yield "> 🎬 引擎正在进行前置推演：场次镜头规划 (预计耗时20-30秒，请稍候)...\n\n"
+
+                    planning_prompt = """请根据以下场景卡，只输出一个「场次镜头规划」，不要写分镜单：
+1. 本场核心叙事任务（说明要完成什么物理事件传导）
+2. 建议镜头数量和总时长分配
+3. 主镜头是第几个，为什么它是核心
+4. 景别变化逻辑
+5. 最关键的转场点在哪里，用什么衔接方式
+6. ✂️ 【强制切片规划 (算力红线)】：请明确列出本场戏需要被切分为几个片段！每个片段包含哪几个镜头？(必须保证任何一个片段的时长相加绝对 ≤ 13秒！)
+
+【最高防暴走警告】：字数必须严格控制在 300 字以内！绝对禁止在这一步生成具体的 Markdown 分镜表格！
+场景卡：\n""" + req.input
+
+                    # 调用 safe_api_call，并严格限制 max_tokens 为 800，防止话痨
+                    planning_result = await safe_api_call(
+                        nodes, [{"role": "user", "content": planning_prompt}], temperature=0.3, max_tokens=800
+                    )
+
+                    # 规划跑完后，再给前端一个反馈
+                    yield f"> 📝 规划推演完成，正在生成正式分镜单...\n\n"
+
+                    enhanced_input = f"""【场次镜头规划（已确认，必须严格遵守）】
+{planning_result}\n\n【场景卡（执行依据）】\n{req.input}\n\n请严格按照以上镜头规划生成完整分镜单。"""
+                # 接续生成时跳过规划，enhanced_input 保持 req.input 原样
+
+            # 🌟【全量出片模式】：强制注入防截断指令，防止 DeepSeek 长剧本中途偷懒
+            if req.stage == "shot" and req.execution_mode == "batch":
+                enhanced_input += "\n\n【特别指令】：当前为全量模式！请无视输出长度限制，必须一次性输出整篇剧本的所有分镜内容，严禁在中间停止或省略！"
+
+            # 接续生成：强制覆写指令
+            if "系统最高防断裂指令" in req.input:
+                if req.stage == "prompt":
+                    # Prompt 阶段接续：提取历史中最后几个完整 JSON 对象，内联到接续指令中
+                    # 这样模型在 user 消息中直接看到已生成内容，比依赖 assistant 历史续写更可靠
+                    last_json_context = ""
+                    if req.session_id in conversation_histories:
+                        for msg in reversed(conversation_histories[req.session_id]):
+                            if msg["role"] == "assistant":
+                                trimmed = _trim_to_last_complete_json(msg["content"])
+                                if trimmed:
+                                    last_json_context = trimmed
+                                break
+
+                    if last_json_context:
+                        enhanced_input = req.input + f"""
+
+【系统底层强制覆写·JSON续写模式】：
+当前为断点续写！以下是已经生成的 JSON 数组（尚未闭合）：
+```json
+{last_json_context}
+```
+请直接从断裂点的下一个镜头开始继续输出剩余的 JSON 对象，最后用 "]" 闭合整个 JSON 数组。
+注意：你输出的第一个字符必须是 "{{"（下一个镜头对象）！绝对禁止重复生成已有镜头！绝对禁止输出 "[" 或开头逗号！"""
+                    else:
+                        enhanced_input = req.input + """
+
+【系统底层强制覆写·JSON续写模式】：当前为断点续写！历史记录中已有完整的 JSON 对象（数组未闭合）。请直接从下一个镜头开始继续输出剩余的 JSON 对象，最后用 "]" 闭合整个 JSON 数组。注意：你输出的第一个字符必须是 "{"！绝对禁止重复生成已有镜头！绝对禁止输出 "[" 或开头逗号！"""
+                else:
+                    # 非JSON阶段接续：从历史中提取尾部上下文，作为续写锚点
+                    # 没有上下文锚点时模型会迷路，导致"接不上前面的内容"
+                    tail_context = ""
+                    if req.session_id in conversation_histories:
+                        for msg in reversed(conversation_histories[req.session_id]):
+                            if msg["role"] == "assistant":
+                                clean = msg["content"].replace('​', '').replace('‌', '').replace('‍', '').replace('﻿', '')
+                                # 取尾部800字作为续写锚点
+                                tail_context = clean[-800:] if len(clean) > 800 else clean
+                                break
+
+                    if tail_context:
+                        enhanced_input = req.input + f"""
+
+【系统底层强制覆写·断点续写模式】：
+当前为断点续写！以下是之前输出的最后部分内容（上下文锚点，不是让你重复的）：
+<已生成内容的结尾片段>
+...{tail_context}
+</已生成内容的结尾片段>
+
+请直接、无缝地接着以上内容的最后一个字符继续输出！
+铁律：
+1. 绝对禁止进行任何前置剧情回忆、禁止逻辑推演、禁止输出思考过程！
+2. 绝对禁止重复上面<已生成内容的结尾片段>中已经写过的任何内容！
+3. 你输出的第一个字符必须能完美拼接到上一段输出的最后一个字符后面！
+4. 如果上段在生成某个片段/镜头的中间截断，请从该片段/镜头的断裂点继续写，不要重头开始！
+5. 如果上段以分隔符（如"---"）结尾，请直接开始下一个片段的完整内容！"""
+                    else:
+                        enhanced_input = req.input + """
+
+【系统底层强制覆写】：当前为断点续写！绝对禁止进行任何前置剧情回忆、禁止逻辑推演、禁止输出思考过程！请直接、立刻输出断点后的下一个字符！"""
+
+            sys_prompt = req.system_prompt.strip() or "请严格按照要求完成当前阶段的生成任务。"
+
+            # 🌟 双轨制输出引擎：纯场景空镜底板（Clean Plate）
+            if req.stage == "prompt":
+                sys_prompt += """
+	你现在是微观史诗空镜摄影指导。画面中严禁出现任何角色、动物、人类！
+
+	【空镜底板框架（必须严格遵守）】：
+	1. 物理机位：24mm广角微距探针镜头，10-15cm等高平视。
+	2. 前景遮挡：横向穿过画面的虚化草叶，占比15%-20%。
+	3. 舞台留白：画面中景留出光影极佳的空地作为后续合成站位区。
+	4. 微观比例：通过巨物细节（露珠、叶脉、真菌伞盖）维持尺度感。
+	5. 光影材质：侧逆轮廓光 + 次表面散射通透感 + 丁达尔体积光 + 冷暖互补色调。
+
+	👉 英文版 (Midjourney/Kling)：高密度摄影术语。
+	👉 中文版 (即梦/Seedance)：自然白描，禁止术语照搬。
+	"""
+
+            # 🌟 Prompt Cache 优化：构建 system prompt，Claude 用 blocks，OpenAI 兼容用文本
+            # 计算缓存键，判断是否可以复用
+            cache_key = _get_system_prompt_cache_key(context, example_block, sys_prompt)
+            cached = _system_prompt_cache.get(req.session_id)
+
+            # 判断当前请求是否走 Claude（检查路由配置的节点）
+            is_claude_stage = any("claude" in n["model"].lower() for n in nodes)
+
+            if cached and cached["hash"] == cache_key:
+                # 命中缓存：复用已构建的 system prompt
+                system_blocks = cached.get("system_blocks")  # Claude 格式
+                full_system_instruction = cached["full_text"]   # OpenAI 兼容格式
+                print(f"[PromptCache] 命中会话级 system prompt 缓存 | stage={req.stage} | claude={is_claude_stage}")
+            else:
+                # 未命中：重新构建
+                full_system_instruction = f"""【全局知识库参考资料 (包含通用法则与IP专属约束)】
+<knowledge_base>\n{context}\n</knowledge_base>\n{example_block}
+======================================
+【当前阶段核心任务与指令】\n{sys_prompt}
+【最高优先级格式警告】：必须严格遵循格式，严禁中途截断或反问！"""
+                system_blocks = _build_system_blocks(context, example_block, sys_prompt) if is_claude_stage else None
+                _system_prompt_cache[req.session_id] = {
+                    "hash": cache_key,
+                    "system_blocks": system_blocks,
+                    "full_text": full_system_instruction,
+                }
+                # 缓存上限守卫，防止内存泄漏
+                if len(_system_prompt_cache) > 50:
+                    _system_prompt_cache.pop(next(iter(_system_prompt_cache)))
+                print(f"[PromptCache] 新建 system prompt 缓存 | stage={req.stage} | claude={is_claude_stage}")
+
+            if req.session_id not in conversation_histories:
+                conversation_histories[req.session_id] = deque(maxlen=MAX_TURNS * 2)
+            history = list(conversation_histories[req.session_id])
+
+            # 构建基础 messages（不含最后的 user）
+            base_messages = []
+            if not is_claude_stage:
+                base_messages.append({"role": "system", "content": full_system_instruction})
+
+            # 🌟 自动化切片推演时跳过冗长历史，防止 Token 爆炸和注意力稀释
+            is_chunking_process = "自动化分段" in enhanced_input
+            is_continue = "系统最高防断裂指令" in req.input
+
+            if not is_chunking_process:
+                # 🌟 接续生成时：prompt 阶段 JSON 上下文已内联到 user 接续指令中，不加载 assistant 历史
+                if is_continue and req.stage == "prompt" and history:
+                    # 只加载 user 历史，跳过 assistant 历史（JSON 上下文已内联到接续指令中）
+                    for msg in history:
+                        if msg["role"] != "assistant":
+                            base_messages.append(msg)
+                else:
+                    for msg in history:
+                        base_messages.append(msg)
+
+            messages = base_messages + [{"role": "user", "content": enhanced_input}]
+
+            # ==========================================
+            # 第二阶段：双轨智能切换与异构灾备轮询（核心修复区）
+            # ==========================================
+            start_index = random.randint(0, len(nodes) - 1)
+            has_yielded = False # 状态锁：判断是否已经开始输出内容
+
+            if req.stage == "shot" and req.execution_mode == "sequential" and req.segments:
+                # 🌟 轨道 A：逐段推演 (Claude 模式) —— 循环 segments，每一段生成后 yield 分隔符触发前端弹窗
+                # 🌟 Prompt Cache 核心优化：system_blocks 保持不变，只替换最后一条 user 消息
+                for seg_idx, segment_content in enumerate(req.segments):
+                    yield f"\n\n> 🎬 正在生成第 {seg_idx + 1}/{len(req.segments)} 段分镜...\n\n"
+
+                    seg_user_content = f"【场景卡片段 {seg_idx + 1}/{len(req.segments)}】\n{segment_content}\n\n请严格根据此片段生成对应的分镜单。"
+
+                    if is_claude_stage and system_blocks is not None:
+                        # Claude：复用 base_messages（不含 user），只替换最后的 user
+                        seg_messages = list(base_messages)
+                        seg_messages.append({"role": "user", "content": seg_user_content})
+                        seg_response = await safe_api_call(
+                            nodes, seg_messages,
+                            STAGE_TEMPERATURES.get(req.stage, 0.6),
+                            max_tokens=16384,
+                            system_blocks=system_blocks,
+                        )
+                    else:
+                        # OpenAI 兼容：复用 system + history，只替换 user
+                        seg_messages = [{"role": "system", "content": full_system_instruction}]
+                        if not is_chunking_process:
+                            for msg in history:
+                                seg_messages.append(msg)
+                        seg_messages.append({"role": "user", "content": seg_user_content})
+                        seg_response = await safe_api_call(
+                            nodes, seg_messages,
+                            STAGE_TEMPERATURES.get(req.stage, 0.6),
+                            max_tokens=16384,
+                        )
+
+                    full_response += seg_response
+                    yield seg_response
+
+                    # 每一段生成后 yield 结束符，触发前端弹窗确认
+                    if seg_idx < len(req.segments) - 1:
+                        yield "\n\n[SEGMENT_COMPLETE]\n\n"
+
+                has_yielded = True
+
+            elif req.stage == "prompt":
+                # 🌟 双轨智能切换逻辑 🌟
+                for attempt in range(len(nodes)):
+                    current_node = nodes[(start_index + attempt) % len(nodes)]
+                    model_name_lower = current_node["model"].lower()
+                    print(f"[引擎路由] Prompt节点: [{current_node['model']}] (尝试 {attempt + 1}/{len(nodes)})")
+
+                    try:
+                        if "claude" in model_name_lower:
+                            # ====== 轨道 A：Claude 专属原生流式通道 ======
+                            print(f"检测到 Claude 模型，启用 Anthropic 原生流式结构化输出...")
+
+                            anthropic_client = AsyncAnthropic(
+                                api_key=current_node["key"],
+                                base_url=current_node["url"] if current_node.get("url") else None
+                            )
+
+                            # 🌟 核心修复：如果在断点续写模式，强行关闭 json_schema 结构化输出，避免其忽略上下文重写
+                            stream_kwargs = {
+                                "model": current_node["model"],
+                                "max_tokens": 8192,
+                                "messages": base_messages,  # 不含 system，不含最后一条 user（下面按需添加）
+                                "temperature": 0.1,
+                            }
+
+                            # 🌟 Prompt Caching：使用 block 格式传递 system，知识库部分标记缓存断点
+                            if is_claude_stage and system_blocks is not None:
+                                stream_kwargs["system"] = system_blocks
+                                # base_messages 不含 system 也不含最后一条 user，需补齐
+                                stream_kwargs["messages"] = base_messages + [{"role": "user", "content": enhanced_input}]
+                            else:
+                                system_text = "\n".join([m["content"] for m in messages if m["role"] == "system"]).strip()
+                                stream_kwargs["system"] = system_text
+                                # 回退时 messages 可能含 system，只留 user
+                                stream_kwargs["messages"] = [m for m in messages if m["role"] != "system"]
+
+                            if not is_continue:
+                                stream_kwargs["output_config"] = {
+                                    "format": {
+                                        "type": "json_schema",
+                                        "schema": FIVE_FIELD_SCHEMA
+                                    }
+                                }
+                            else:
+                                print("[防崩溃守卫] 处于续写模式，已自动关闭 json_schema 结构化输出束缚。")
+
+                            async with anthropic_client.messages.stream(**stream_kwargs) as stream:
+                                async for text in stream.text_stream:
+                                    if text:
+                                        has_yielded = True
+                                        full_response += text
+                                        yield text
+
+                            # 🛡️ Bug 3 修复：过滤零宽空格假象
+                            if not full_response.strip():
+                                print(f"[Claude空数据诊断] 模型={current_node['model']}, full_response长度={len(full_response)}, repr={repr(full_response[:500])}")
+                                raise ValueError("Claude 返回了空数据")
+
+                        else:
+                            # ====== 轨道 B：DeepSeek / Qwen 等 OpenAI 兼容通道 ======
+                            print(f"启用 OpenAI 兼容通道处理 {current_node['model']}...")
+                            current_temp = STAGE_TEMPERATURES.get(req.stage, 0.6)
+                            current_route = req.routes.get(req.stage)
+                            is_thinking_mode = getattr(current_route, 'is_thinking', False)
+
+                            openai_client = AsyncOpenAI(
+                                api_key=current_node["key"],
+                                base_url=current_node["url"] if current_node.get("url") else None,
+                                http_client=shared_http_client
+                            )
+
+                            call_params = {
+                                "model": current_node["model"],
+                                "messages": messages,
+                                "temperature": 0.1 if is_thinking_mode else current_temp,
+                                "max_tokens": 32768,
+                                "stream": True  # 🌟 修复1：强制开启流式！防止超时死锁
+                            }
+
+                            # 🌟 修复2：动态适配不同厂商的思考参数
+                            if is_thinking_mode:
+                                if "deepseek" in model_name_lower:
+                                    call_params["extra_body"] = {
+                                        "thinking": {"type": "enabled"},
+                                        "reasoning_effort": "high"
+                                    }
+                                else:
+                                    # Qwen 百炼格式
+                                    call_params["extra_body"] = {"enable_thinking": True}
+
+                            # 🌟 修复3：改为流式接收（prompt 阶段无需心跳，直接等待即可）
+                            response_task = asyncio.create_task(openai_client.chat.completions.create(**call_params))
+                            response = await response_task
+
+                            last_yield_time = time.time()
+                            reasoning_buffer = ""  # 收集 reasoning，作为 content 为空时的回退
+                            async for chunk in response:
+                                if chunk.choices and len(chunk.choices) > 0:
+                                    delta = chunk.choices[0].delta
+                                    content = getattr(delta, 'content', None) or ""
+                                    reasoning = getattr(delta, 'reasoning_content', None) or ""
+
+                                    if content:
+                                        has_yielded = True
+                                        full_response += content
+                                        yield content
+                                        last_yield_time = time.time()
+                                    elif reasoning:
+                                        reasoning_buffer += reasoning
+                                        last_yield_time = time.time()
+
+                            # DeepSeek 思考模式可能将全部输出放在 reasoning_content 中，content 始终为空
+                            if not full_response.strip() and reasoning_buffer.strip():
+                                print(f"[Prompt回退] content 为空，使用 reasoning_content 作为输出 (长度={len(reasoning_buffer)})")
+                                full_response = reasoning_buffer
+                                has_yielded = True
+                                yield full_response
+
+                            if not full_response.strip():
+                                raise ValueError("API 返回了空数据")
+
+                        break  # 生成成功，跳出重试循环
+
+                    except Exception as e:
+                        if has_yielded:
+                            print(f"[生成截断] 节点 {current_node['model']} 传输中断。")
+                            raise e
+                        else:
+                            if attempt == len(nodes) - 1:
+                                raise e
+                            print(f"节点受限，触发秒切... 失败节点:[{current_node['model']}], 错误:{str(e)[:40]}")
+                            await asyncio.sleep(1)
+
+            else:
+                # ====== 非 prompt 阶段：双轨流式输出 (Claude 原生 / OpenAI 兼容) ======
+                for attempt in range(len(nodes)):
+                    current_node = nodes[(start_index + attempt) % len(nodes)]
+                    model_name_lower = current_node["model"].lower()
+                    print(f"[引擎路由] 流式节点: [{current_node['model']}] (尝试 {attempt + 1}/{len(nodes)})")
+
+                    try:
+                        if "claude" in model_name_lower:
+                            # ====== 轨道 A：Claude 原生普通流式通道 ======
+                            anthropic_client = AsyncAnthropic(
+                                api_key=current_node["key"],
+                                base_url=current_node["url"] if current_node.get("url") else None
+                            )
+
+                            stream_kwargs = {
+                                "model": current_node["model"],
+                                "max_tokens": 8192,
+                                "temperature": STAGE_TEMPERATURES.get(req.stage, 0.6),
+                            }
+
+                            # 🌟 Prompt Caching：使用 block 格式传递 system，知识库部分标记缓存断点
+                            if is_claude_stage and system_blocks is not None:
+                                stream_kwargs["system"] = system_blocks
+                                # base_messages 不含 system 也不含最后一条 user，需补齐
+                                stream_kwargs["messages"] = base_messages + [{"role": "user", "content": enhanced_input}]
+                            else:
+                                system_text = "\n".join([m["content"] for m in messages if m["role"] == "system"]).strip()
+                                stream_kwargs["system"] = system_text
+                                stream_kwargs["messages"] = [m for m in messages if m["role"] != "system"]
+
+                            async with anthropic_client.messages.stream(**stream_kwargs) as stream:
+                                async for text in stream.text_stream:
+                                    if text:
+                                        has_yielded = True
+                                        full_response += text
+                                        yield text
+
+                            if not full_response.strip():
+                                print(f"[Claude空数据诊断] 模型={current_node['model']}, full_response长度={len(full_response)}, repr={repr(full_response[:500])}")
+                                raise ValueError("Claude 返回了空数据")
+                            break
+
+                        else:
+                            # ====== 轨道 B：OpenAI 兼容普通流式通道 ======
+                            stream_client = AsyncOpenAI(
+                                api_key=current_node["key"],
+                                base_url=current_node["url"] if current_node.get("url") else None,
+                                http_client=shared_http_client
+                            )
+
+                            async def fetch_stream(node):
+                                current_temp = 0.01 if "系统最高防断裂指令" in req.input else STAGE_TEMPERATURES.get(req.stage, 0.6)
+                                current_route = req.routes.get(req.stage)
+                                is_thinking_mode = getattr(current_route, 'is_thinking', False)
+
+                                call_params = {
+                                    "model": node["model"],
+                                    "messages": messages,
+                                    "temperature": 0.1 if is_thinking_mode else current_temp,
+                                    "max_tokens": 32768,
+                                    "stream": True
+                                }
+
+                                if is_thinking_mode:
+                                    if "deepseek" in model_name_lower:
+                                        call_params["extra_body"] = {
+                                            "thinking": {"type": "enabled"},
+                                            "reasoning_effort": "high"
+                                        }
+                                    else:
+                                        call_params["extra_body"] = {"enable_thinking": True}
+
+                                return await stream_client.chat.completions.create(**call_params)
+
+                            response_task = asyncio.create_task(fetch_stream(current_node))
+
+                            while not response_task.done():
+                                yield "​"
+                                await asyncio.sleep(2)
+
+                            try:
+                                response = response_task.result()
+                            except asyncio.CancelledError:
+                                print(f"[流式中断] 客户端断开连接")
+                                break
+                            except Exception as e:
+                                raise e
+
+                            last_yield_time = time.time()
+                            reasoning_buffer = ""  # 收集 reasoning，作为 content 为空时的回退
+
+                            async for chunk in response:
+                                if chunk.choices and len(chunk.choices) > 0:
+                                    delta = chunk.choices[0].delta
+                                    content = getattr(delta, 'content', None) or ""
+                                    reasoning = getattr(delta, 'reasoning_content', None) or ""
+
+                                    if content:
+                                        has_yielded = True
+                                        full_response += content
+                                        yield content
+                                        last_yield_time = time.time()
+                                    elif reasoning:
+                                        reasoning_buffer += reasoning
+                                        # 推理阶段发送心跳保持连接
+                                        current_time = time.time()
+                                        if current_time - last_yield_time > 2.0:
+                                            yield "​"
+                                            last_yield_time = current_time
+
+                            # DeepSeek 思考模式可能将全部输出放在 reasoning_content 中，content 始终为空
+                            if not full_response.strip() and reasoning_buffer.strip():
+                                print(f"[流式回退] content 为空，使用 reasoning_content 作为输出 (长度={len(reasoning_buffer)})")
+                                full_response = reasoning_buffer
+                                has_yielded = True
+                                yield full_response
+
+                            break
+
+                    except Exception as e:
+                        if has_yielded:
+                            print(f"[流式截断] 节点 {current_node['model']} 传输中断。")
+                            raise e
+                        else:
+                            if attempt == len(nodes) - 1:
+                                raise e
+                            print(f"节点受限，触发秒切... 失败节点:[{current_node['model']}], 错误:{str(e)[:40]}")
+                            await asyncio.sleep(1)
+
+            # ==========================================
+            # 第三阶段：后处理与持久化存档
+            # ==========================================
+
+            # 【存盘修复补丁】：识别接续状态与自动化切片，将文本碎片完美拼接！
+            safe_response = full_response.replace('​', '').replace('‌', '').replace('‍', '').replace('﻿', '')
+            content_to_save = safe_response
+            is_continue = "系统最高防断裂指令" in req.input
+            # 🌟 修复暗号对齐：识别前端发送的 "自动化分段执行指令"
+            is_chunking = "自动化分段" in req.input
+
+            if is_continue or is_chunking:
+                blocks = []
+                # 倒序遍历历史记录
+                for msg in reversed(conversation_histories[req.session_id]):
+                    if msg["role"] == "assistant":
+                        blocks.append(msg["content"])
+                    elif msg["role"] == "user":
+                        # 🌟 修复暗号对齐
+                        if "系统最高防断裂指令" in msg["content"] or "自动化分段" in msg["content"]:
+                            continue
+                        else:
+                            break
+                blocks.reverse()
+
+                if is_chunking:
+                    # 切片模式：保留第一段的表头，剥离所有后续段的Markdown表头和代码块
+                    final_blocks = []
+                    for i, blk in enumerate(blocks):
+                        c = re.sub(r'```markdown\n?', '', blk)
+                        c = re.sub(r'```\n?', '', c)
+                        if i > 0:
+                            c = re.sub(r'^\|.*镜头编号.*\|\n', '', c, flags=re.MULTILINE)
+                            c = re.sub(r'^\|[\s:|-]+\|\n', '', c, flags=re.MULTILINE)
+                        final_blocks.append(c.strip())
+
+                    clean_resp = re.sub(r'```markdown\n?', '', full_response)
+                    clean_resp = re.sub(r'```\n?', '', clean_resp)
+                    clean_resp = re.sub(r'^\|.*镜头编号.*\|\n', '', clean_resp, flags=re.MULTILINE)
+                    clean_resp = re.sub(r'^\|[\s:|-]+\|\n', '', clean_resp, flags=re.MULTILINE)
+
+                    content_to_save = "\n".join(final_blocks) + "\n" + clean_resp.strip()
+                else:
+                    # 断点接续模式：直接硬拼接
+                    if is_continue and req.stage == "prompt":
+                        accumulated = ""
+                        for blk in blocks:
+                            trimmed = _trim_to_last_complete_json(blk)
+                            if trimmed:
+                                accumulated += trimmed
+                        content_to_save = accumulated + safe_response
+                    else:
+                        accumulated = "".join(blocks)
+                        content_to_save = accumulated + safe_response
+
+            # 保存进内存历史（过滤零宽字符，防止污染后续接续生成的上下文）
+            if is_continue or is_chunking:
+                old_history = conversation_histories[req.session_id]
+                # 倒序移除：接续user消息 + 之前的assistant碎片，直到遇到非接续的user消息为止
+                while old_history:
+                    last = old_history[-1]
+                    if last["role"] == "assistant":
+                        old_history.pop()
+                    # 🌟 修复暗号对齐
+                    elif last["role"] == "user" and ("系统最高防断裂指令" in last["content"] or "自动化分段" in last["content"]):
+                        old_history.pop()
+                    else:
+                        break
+
+            conversation_histories[req.session_id].append({"role": "user", "content": enhanced_input})
+            # 接续/切片时存入拼接后的完整全文，而非本次碎片，确保后续接续能获取完整上下文
+            history_entry = content_to_save if (is_continue or is_chunking) and content_to_save.strip() else safe_response
+            conversation_histories[req.session_id].append({"role": "assistant", "content": history_entry})
+
+            # 使用拼接后的【完整全文 (content_to_save)】去执行 JSON 解析和本地存盘！
+            if content_to_save.strip():
+                if req.stage == "prompt":
+                    try:
+                        extracted = extract_json(content_to_save)
+                        parsed = json.loads(extracted)
+
+                        # 🌟 必须保留的严格字段完整性校验 🌟
+                        required_fields = {"fragment_id", "image_strategy", "source_fragment_id", "image_prompt", "negative_prompt"}
+
+                        incomplete_shots = []
+                        for shot in parsed:
+                            missing = required_fields - set(shot.keys())
+                            if missing:
+                                incomplete_shots.append(f"单元 {shot.get('fragment_id', '?')}: 缺少 {missing}")
+
+                        if incomplete_shots:
+                            print(f"[字段完整性警告] {'; '.join(incomplete_shots)}")
+
+                        # 校验完成后存盘 (用提取出并修好的完整 JSON)
+                        save_generated_content(req.stage, extracted, req.run_id)
+
+                    except Exception as e:
+                        print(f"[JSON验证失败] {e}")
+                        # 就算 JSON 烂了，也要把带前后文的完整原文存下来
+                        save_generated_content(req.stage, content_to_save, req.run_id)
+                else:
+                    # 分镜等直接保存全文
+                    save_generated_content(req.stage, content_to_save, req.run_id)
+                    # 🌟 核心修复：在 shot(分镜) 阶段自动提取并保存干净的直投词
+                    if req.stage == "shot":
+                        try:
+                            direct_version = extract_jimeng_direct_prompt(content_to_save)
+                            if direct_version:
+                                save_generated_content("jimeng_direct", direct_version, req.run_id)
+                        except:
+                            pass
+
+        except Exception as e:
+            error_msg = sanitize_error_msg(str(e))
+            yield f"\n\n\n> [异常] {error_msg}"
+            if full_response.strip():
+                save_generated_content(req.stage, full_response, req.run_id)
+                if req.stage == "shot":
+                    try:
+                        direct_version = extract_jimeng_direct_prompt(full_response)
+                        if direct_version:
+                            save_generated_content("jimeng_direct", direct_version, req.run_id)
+                    except:
+                        pass
+
+    return StreamingResponse(generate_stream(), media_type="text/plain")
+
+
+@app.post("/clear_memory")
+def clear_memory(req: ClearMemoryRequest):
+    if req.session_id in conversation_histories:
+        conversation_histories[req.session_id].clear()
+    return {"status": "success"}
+
+
+# ---------- 6A. 蒸馏雷达：独立 JSON 范例提取 (防截断) ----------
+@app.post("/extract_json_example")
+async def extract_json_example_endpoint(req: WashExampleRequest):
+    try:
+        route = req.routes.get("jimeng")
+        if not route or not route.key:
+            raise ValueError("请先在系统设置中配置 [数据提炼] 引擎的 API 选项！")
+        nodes = get_api_nodes(route.key, route.url, route.model)
+        if not nodes:
+            raise ValueError("未提供有效的 API Key")
+
+        wash_prompt = f"""你是一个高级的「影视数据结构化工程师」。
+请阅读以下【视频详细拉片描述】，逆向还原为标准的 5 字段场景空镜（Clean Plate）JSON 格式！
+
+【视频拉片描述】：
+{req.raw_text}
+
+要求：
+1. 必须输出纯JSON数组格式 [ {{...}} ]，绝不解释！
+2. 提炼时【绝对屏蔽】拉片描述中的角色动作与生物，只提炼环境、光影、遮挡物与舞台空间！
+3. image_strategy 必须从 ["generate_new_image", "use_tail_frame"] 选一。
+4. image_prompt 必须按照空镜框架白描（机位尺度 + 前景遮挡 + 舞台留白 + 巨物细节 + 光影材质）。
+5. negative_prompt 必须包含排除角色的词汇。
+
+======================================
+【最高系统防漏指令：强制 JSON 骨架】
+你输出的 JSON 数组中的每一个对象，都必须完全包含以下 5 个 Key！
+{{
+  "fragment_id": "如：生成单元一",
+  "image_strategy": "generate_new_image",
+  "source_fragment_id": "",
+  "image_prompt": "UE5真实微观摄影，等高平视，镜头前横向虚化大叶片...",
+  "negative_prompt": "any characters, animals, humans, cats, dogs..."
+}}
+"""
+        print(f"\n正在独立执行 JSON 镜头范例提取...")
+        raw_json_str = await safe_api_call(nodes, [{"role": "user", "content": wash_prompt}], 0.2, max_tokens=8192)
+
+        # 清洗 JSON
+        json_content = raw_json_str.strip()
+        if "```json" in json_content:
+            json_content = json_content.split("```json")[1].split("```")[0].strip()
+        elif "```" in json_content:
+            json_content = json_content.split("```")[1].split("```")[0].strip()
+
+        json_match = re.search(r'\[\s*\{.*\}\s*\]', json_content, re.DOTALL)
+        if json_match:
+            json_content = json_match.group(0)
+
+        try:
+            parsed_json = json.loads(json_content)
+        except json.JSONDecodeError:
+            # 使用末端抢救机制修复半截JSON
+            last_complete = json_content.rfind('},')
+            if last_complete > 0:
+                truncated = json_content[:last_complete + 1] + ']'
+                try:
+                    parsed_json = json.loads(truncated)
+                    print("[JSON修复] 已成功抢救截断的JSON。")
+                except:
+                    parsed_json = [{"error": "无法修复的JSON截断", "raw": json_content[:200]}]
+            else:
+                parsed_json = [{"error": "AI返回非标准JSON", "raw": json_content[:200]}]
+
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+
+        # 按 image_strategy 分目录存盘
+        try:
+            strategies_found = set(s.get("image_strategy", "unknown") for s in parsed_json)
+            for strategy in strategies_found:
+                strategy_dir = os.path.join(EX_CORE_DIR, strategy)
+                os.makedirs(strategy_dir, exist_ok=True)
+                filtered = [s for s in parsed_json if s.get("image_strategy") == strategy]
+                if filtered:
+                    filepath = os.path.join(strategy_dir, f"example_{timestamp}.json")
+                    with open(filepath, "w", encoding="utf-8") as f:
+                        json.dump(filtered, f, ensure_ascii=False, indent=2)
+        except Exception as e:
+            with open(os.path.join(EX_CORE_DIR, f"example_washed_{timestamp}.json"), "w", encoding="utf-8") as f:
+                f.write(json_content)
+
+        return {
+            "status": "success",
+            "message": "JSON 范例提取并存档成功！",
+            "json_content": parsed_json
+        }
+    except Exception as e:
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=str(e))
+
+# ---------- 6B. 蒸馏雷达：独立知识库法则提炼 (三轨并发) ----------
+@app.post("/distill_knowledge")
+async def distill_knowledge_endpoint(req: WashExampleRequest):
+    try:
+        route = req.routes.get("jimeng")
+        if not route or not route.key:
+            raise ValueError("请先在系统设置中配置 [数据提炼] 引擎的 API 选项！")
+        nodes = get_api_nodes(route.key, route.url, route.model)
+        if not nodes:
+            raise ValueError("未提供有效的 API Key")
+
+        # Track 2: 视觉执行法则
+        distill_prompt = f"""你是一位顶级的电影学院导演系教授与后期剪辑指导。请阅读以下【视频详细拉片描述】，忽略具体的角色名称和剧情细节，提炼出底层的【视觉执行层】影视创作规律，包含四维度：1.动势衔接与转场法则 2.Q弹微观物理法则 3.治愈系拟音与听觉法则 4.景别节奏法则。\n\n【视频描述】：\n{req.raw_text}"""
+
+        # Track 3: 美学风格
+        style_prompt = f"""你是一位负责影视知识库整理的内容工程师。请阅读以下【视频详细拉片描述】，从中提炼出至少2条核心的美学法则。格式要求：\n#### 法则：[法则名称]\n[核心描述]\n正向参数：[英文提示词]\n视频模型光影描述参考：「[中文光影描述]」\n\n【视频描述】：\n{req.raw_text}"""
+
+        # Track 4: 叙事法则
+        narrative_prompt = f"""你是一位电影编剧教授。阅读以下【视频详细拉片描述】，提炼【叙事层】创作规律。包含四条法则：1.四幕情绪节拍分布规律 2.场景间因果连接模式 3.软冲突与角色合奏逻辑 4.尺度环境驱动规律。每条法则必须带「Stage 1编剧应用示例」。\n\n【视频描述】：\n{req.raw_text}"""
+
+        print(f"\n正在并发提炼三大导演知识库 (视觉|美学|叙事)...")
+
+        t1 = safe_api_call(nodes, [{"role": "user", "content": distill_prompt}], 0.5, max_tokens=4096)
+        t2 = safe_api_call(nodes, [{"role": "user", "content": style_prompt}], 0.3, max_tokens=4096)
+        t3 = safe_api_call(nodes, [{"role": "user", "content": narrative_prompt}], 0.5, max_tokens=4096)
+
+        results = await asyncio.gather(t1, t2, t3)
+        distill_content, style_content, narrative_content = results[0], results[1], results[2]
+        friendly_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
+        # 全部写入 distilled 目录，auto_ 前缀以示区分，杜绝污染 core 黄金法则库
+        # 【修复】：调用 check_and_deduplicate_kb 防止知识库重复暴涨
+        kb_distill_path = os.path.join(KB_DISTILLED_DIR, "auto_视觉执行法则.md")
+        valid_distill = await check_and_deduplicate_kb(kb_distill_path, distill_content, nodes)
+        if valid_distill:
+            with open(kb_distill_path, "a", encoding="utf-8") as kf:
+                kf.write(f"\n\n### 自动提取 ({friendly_time})\n{valid_distill.strip()}\n")
+            trim_kb_file_if_needed(kb_distill_path)
+
+        kb_style_path = os.path.join(KB_DISTILLED_DIR, "auto_视觉美学法则.md")
+        valid_style = await check_and_deduplicate_kb(kb_style_path, style_content, nodes)
+        if valid_style:
+            with open(kb_style_path, "a", encoding="utf-8") as sf:
+                sf.write(f"\n\n### 自动提取 ({friendly_time})\n{valid_style.strip()}\n")
+            trim_kb_file_if_needed(kb_style_path)
+
+        kb_narrative_path = os.path.join(KB_DISTILLED_DIR, "auto_叙事节拍法则.md")
+        valid_narrative = await check_and_deduplicate_kb(kb_narrative_path, narrative_content, nodes)
+        if valid_narrative:
+            with open(kb_narrative_path, "a", encoding="utf-8") as nf:
+                nf.write(f"\n\n### 自动提取 ({friendly_time})\n{valid_narrative.strip()}\n")
+            trim_kb_file_if_needed(kb_narrative_path)
+
+        return {
+            "status": "success",
+            "message": "知识库提炼完成！经验库·美学库·叙事节拍库均已更新。",
+            "tracks": {"visual": distill_content, "aesthetic": style_content, "narrative": narrative_content}
+        }
+    except Exception as e:
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+# ---------- 7. 专属 IP 圣经提取引擎 ----------
+@app.post("/extract_ip_bible")
+async def extract_ip_bible_endpoint(req: WashExampleRequest):
+    try:
+        route = req.routes.get("jimeng")
+        if not route or not route.key:
+            raise ValueError("请先在系统设置中配置 [数据提炼] 引擎的 API 选项！")
+        nodes = get_api_nodes(route.key, route.url, route.model)
+        if not nodes:
+            raise ValueError("未提供有效的 API Key")
+
+        print(f"\n正在为 [{req.ip_name}] 极速并发提取 IP 圣经 V3.0...")
+
+        p1 = f"""你是一位3D角色建模师。请逐帧分析以下视频中的角色，严格按模板填空，禁止使用任何形容词或情绪描述词：\n【身体比例】- 头身比(数字)：- 四肢长度与躯干比例(数字)：- 躯干形状(几何体)：- 与环境物体的尺度对比：\n【材质规格】- 皮肤材质：- SSS次表面散射：- 表面纹理特征：\n【颜色数据】- 主体色：- 次要色：- 高光表现：\n【固定附属物】- 携带配件及材质：- 全片是否主动使用过：\n【尺度世界观】- 环境物体类型：- 角色体型所属量级：- 是否有人造室内场景：\n【视频描述】\n{req.raw_text}"""
+
+        p2 = f"""你是一位影视动作指导。请分析视频中角色的运动规律，严格使用大白话回答：\n【基础步态】- 走路的样子（如：摇摇晃晃/高频小碎步）：- 跌倒后的第一反应：- 倒下时的姿态：\n【情绪动作规律】- 惊吓时的动作：- 试探时的动作：\n【禁止动作清单】(逐一回答是否出现过)- 四肢着地爬行：- 像武林高手一样精准跳跃：- 发出攻击性踢打：- 拟人化手势：\n【视频描述】\n{req.raw_text}"""
+
+        p3 = f"""你是一位叙事结构分析师。建立角色决策树与定位：\n【第一部分：行为决策树】(用遇到X→做Y格式)\n1.遇到未知新奇：2.遇到危险惊吓(身体反应)：3.与同伴主动物理行为：4.独处默认状态：5.目标丢失时：6.遇到柔软物体时：\n【第二部分：叙事功能定位】\n- 谁第一个接触未知区域：- 谁的行为导致他人被迫反应：- 该角色空间位置：- 他人是否因其改变行动：\n【第三部分：角色合奏动态】\n- 角色间行为触发关系：- 是否主动保护过他人：- 沟通方式：- 危机中扮演角色：\n【视频描述】\n{req.raw_text}"""
+
+        print("物理规格、运动物理、叙事逻辑任务已同步触发，跨节点加速推理中...")
+        t1 = safe_api_call(nodes, [{"role": "user", "content": p1}], 0.1, max_tokens=4096)
+        t2 = safe_api_call(nodes, [{"role": "user", "content": p2}], 0.1, max_tokens=4096)
+        t3 = safe_api_call(nodes, [{"role": "user", "content": p3}], 0.2, max_tokens=4096)
+
+        results = await asyncio.gather(t1, t2, t3)
+        d1, d2, d3 = results[0], results[1], results[2]
+
+        p4 = f"""以下是对同一角色从三个角度进行的分析原始数据：\n【物理规格数据】\n{d1}\n【运动物理数据】\n{d2}\n【叙事功能与角色关系数据】\n{d3}\n\n请将以上三份数据整合为一份【{req.ip_name}角色圣经 V3.0】，严格按以下三层结构输出：\n---\n【第一层：叙事与关系编排（供Stage 1调用）】\n- 戏剧功能定义（一句话：这个角色是___，它在故事中负责___）：\n- 叙事触发规则（永远是___的发起者，而非___）：\n- 多角色合奏动态（做X → 他人被迫做Y）：\n- 空间位置规则：\n- 绝对禁止项（叙事）：\n\n【第二层：物理硬约束（供Stage 2/3调用，OOC判定标准）】
+请严格按以下编号格式输出每一条约束，编号格式为 HC-01, HC-02...（HC = Hard Constraint）：
+
+HC-01 · 几何比例：[正向提示词，直接适用MJ/Kling]
+HC-02 · 材质规格：[正向提示词，直接适用MJ/Kling]
+HC-03 · 永久附属物：[正向提示词]
+HC-04 · 尺度世界观合法场景：[合法场景池描述]
+HC-05 · 尺度世界观禁止场景：[禁止场景描述]
+HC-06 · 绝对禁止动作（--no参数）：[除拉片提取项外，必须强制包含：anthropomorphic exaggerated expressions, cartoonish morphing]
+
+【第三层：物理软性倾向（供Stage 4调用）】
+请严格按以下编号格式输出，编号格式为 ST-01, ST-02...（ST = Soft Tendency）：
+
+ST-01 · 基础移动逻辑：[动态提示词]
+ST-02 · 腾空与弹跳逻辑：[明确区分笨拙驱动vs精准跳跃]
+ST-03 · 环境交互模式：[前肢使用规则]
+ST-04 · 受击与失衡反应：[倒下形态的物理描述]
+ST-05 · 情绪面部联动：[触发条件+动物口腔结构约束]---\n【一致性检查清单（Stage 4质检专用，10个是/否问题）】\n前7题检查物理，8题尺度，9题运动，10题叙事。(每题必须是通过观察画面直接回答的是/否题)\n---\n要求：删除含糊形容词(可爱/治愈)，用物理描述替代；正负向规则必须能直接拷贝进AI工具。"""
+
+        print("正在拼装完整版 IP 圣经...")
+        bible_content = await safe_api_call(nodes, [{"role": "user", "content": p4}], 0.3, max_tokens=8192)
+
+        ip_dir = os.path.join(KB_IP_DIR, req.ip_name)
+        os.makedirs(ip_dir, exist_ok=True)
+
+        with open(os.path.join(ip_dir, f"{req.ip_name}角色圣经.md"), "w", encoding="utf-8") as f:
+            f.write(f"# {req.ip_name} 角色圣经 V3.0\n\n" + bible_content)
+
+        return {
+            "status": "success",
+            "message": f"角色圣经提炼完成！已自动建立宇宙档案：knowledge/ip/{req.ip_name}/{req.ip_name}角色圣经.md",
+            "bible_content": bible_content
+        }
+
+    except Exception as e:
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+if __name__ == "__main__":
+    uvicorn.run("rag_api:app", host="0.0.0.0", port=8000, reload=True)

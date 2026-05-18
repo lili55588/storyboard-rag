@@ -1,0 +1,554 @@
+
+  return (
+    <div style={styles.root}>
+      <div style={styles.grain} />
+
+      <header style={styles.header}>
+        <div style={styles.headerInner}>
+          <span style={styles.logo}>◈</span>
+          <div>
+            <div style={styles.title}>MICRO EPIC WORKFLOW</div>
+            <div style={styles.titleSub}>IP分层架构 · 导演工作台</div>
+          </div>
+        </div>
+        <div style={{display: 'flex', gap: '15px', alignItems: 'center'}}>
+          <div style={{display: 'flex', alignItems: 'center', gap: '8px', background: 'rgba(255,255,255,0.05)', padding: '4px 12px', borderRadius: '4px', border: "1px solid " + BORDER, flexWrap: 'wrap', maxWidth: '600px'}}>
+            <div style={{display: 'flex', alignItems: 'center', gap: '4px'}}>
+              <span style={{fontSize: '12px', color: MUTED}}>多选挂载:</span>
+              <button
+                onClick={fetchIPs}
+                disabled={isFetchingIPs}
+                style={{
+                  background: 'none', border: 'none', cursor: 'pointer',
+                  color: AMBER, fontSize: '12px', padding: '0 4px',
+                  opacity: isFetchingIPs ? 0.5 : 1
+                }}
+                title="重新拉取后台IP资产"
+              >
+                {isFetchingIPs ? "↻..." : "↻"}
+              </button>
+            </div>
+            {availableIPs.map(ip => (
+              <button 
+                key={ip}
+                onClick={() => setSelectedIPs(prev => prev.includes(ip) ? prev.filter(x => x !== ip) : [...prev, ip])}
+                style={{
+                  background: selectedIPs.includes(ip) ? AMBER : "transparent",
+                  color: selectedIPs.includes(ip) ? "#000" : MUTED,
+                  border: "1px solid " + (selectedIPs.includes(ip) ? AMBER : BORDER),
+                  padding: '2px 8px', borderRadius: '4px', fontSize: '12px', cursor: 'pointer', fontWeight: 'bold'
+                }}
+              >
+                {selectedIPs.includes(ip) ? "✓ " : "+"}{ip}
+              </button>
+            ))}
+            {availableIPs.length === 0 && <span style={{fontSize: '12px', color: MUTED}}>暂无专属IP资产</span>}
+            {selectedIPs.length === 0 && <span style={{fontSize: '12px', color: AMBER, marginLeft: '4px'}}>仅通用法则</span>}
+          </div>
+          
+          <button onClick={() => setShowRadar(true)} style={{...styles.settingsBtn, borderColor: '#E8A020', color: '#E8A020'}}>
+            结构化洗稿雷达
+          </button>
+          <button onClick={() => setShowSettings(true)} style={styles.settingsBtn}>系统设置</button>
+        </div>
+      </header>
+
+      <div style={{
+        padding: '10px 32px', background: 'rgba(255,255,255,0.02)',
+        borderBottom: '1px solid ' + BORDER, display: 'flex', gap: '15px', alignItems: 'center'
+      }}>
+        <span style={{fontSize: '12px', color: MUTED, fontWeight: 'bold'}}>当前美学预设:</span>
+        {Object.entries(STYLE_PRESETS).map(([key, preset]) => (
+          <button
+            key={key}
+            onClick={() => setStyleMode(key)}
+            style={{
+              padding: '6px 16px', borderRadius: '20px', fontSize: '12px', cursor: 'pointer',
+              border: '1px solid ' + (styleMode === key ? preset.color : BORDER),
+              background: styleMode === key ? `${preset.color}20` : 'transparent',
+              color: styleMode === key ? preset.color : MUTED,
+              fontWeight: 'bold', transition: 'all 0.3s'
+            }}
+          >
+            {preset.name}
+          </button>
+        ))}
+      </div>
+
+      <nav style={styles.nav}>
+        {STAGES.map((s, i) => (
+          <button key={s.id} onClick={() => { if (abortControllerRef.current) abortControllerRef.current.abort(); setStage(i); }} style={{...styles.navBtn, ...(stage === i ? styles.navBtnActive : {})}}>
+            <span style={styles.navIcon}>{s.icon}</span><div style={styles.navLabel}><span style={styles.navStep}>0{i + 1}</span>{s.label}</div>
+          </button>
+        ))}
+      </nav>
+
+      <main style={styles.main}>
+        <section style={styles.panel}>
+          <div style={styles.panelHeader}><div style={styles.panelTitle}>{cur.label}阶段</div></div>
+          <textarea style={styles.textarea} value={inputs[stage]} onChange={(e) => { const next = [...inputs]; next[stage] = e.target.value; setInputs(next); }} placeholder={cur.placeholder} />
+
+          {/* 🌟 分镜阶段：全量出片 vs 逐段确认 模式切换 */}
+          {stage === 1 && (
+            <div style={{ marginBottom: '15px', display: 'flex', gap: '10px' }}>
+              <button
+                onClick={() => setExecutionMode('batch')}
+                style={{
+                  flex: 1, padding: '12px', borderRadius: '8px',
+                  border: executionMode === 'batch' ? `2px solid ${AMBER}` : `1px solid ${BORDER}`,
+                  background: executionMode === 'batch' ? 'rgba(232,160,32,0.2)' : 'transparent',
+                  color: TEXT, cursor: 'pointer', fontSize: '13px'
+                }}
+              >
+                🚀 全量出片 (DeepSeek 模式)
+              </button>
+              <button
+                onClick={() => setExecutionMode('sequential')}
+                style={{
+                  flex: 1, padding: '12px', borderRadius: '8px',
+                  border: executionMode === 'sequential' ? `2px solid ${AMBER}` : `1px solid ${BORDER}`,
+                  background: executionMode === 'sequential' ? 'rgba(232,160,32,0.2)' : 'transparent',
+                  color: TEXT, cursor: 'pointer', fontSize: '13px'
+                }}
+              >
+                📑 逐段确认 (Claude 模式)
+              </button>
+            </div>
+          )}
+
+          <div style={{display: 'flex', gap: '10px'}}>
+            {stage === 1 && executionMode === 'sequential' ? (
+              <button onClick={startChunkProcess} disabled={loading || !inputs[1].trim()} style={{...styles.btn, flex: 1, background: "#4ade80", color: "#000", ...(loading || !inputs[1].trim() ? styles.btnDisabled : {})}}>
+                {loading ? "引擎运转中..." : "⚔️ 自动化切片推演 (防截断)"}
+              </button>
+            ) : stage === 2 ? (
+              /* 🌟 新增：第三阶段双语言按钮 🌟 */
+              <>
+                <button onClick={() => handleGenerate('zh')} disabled={loading || !inputs[stage].trim()} style={{...styles.btn, flex: 1, background: "#4ade80", color: "#000", ...(loading || !inputs[stage].trim() ? styles.btnDisabled : {})}}>
+                  {loading ? "引擎运转中..." : "🇨🇳 生成中文 JSON (即梦/Kling)"}
+                </button>
+                <button onClick={() => handleGenerate('en')} disabled={loading || !inputs[stage].trim()} style={{...styles.btn, flex: 1, background: "#8b5cf6", color: "#FFF", ...(loading || !inputs[stage].trim() ? styles.btnDisabled : {})}}>
+                  {loading ? "引擎运转中..." : "🇺🇸 生成英文 JSON (Midjourney)"}
+                </button>
+              </>
+            ) : (
+              <button onClick={() => handleGenerate()} disabled={loading || !inputs[stage].trim()} style={{...styles.btn, flex: 1, ...(loading || !inputs[stage].trim() ? styles.btnDisabled : {})}}>
+                {loading ? "引擎运转中..." : cur.action}
+              </button>
+            )}
+            <button onClick={handleClearMemory} style={{...styles.btnGhost, padding: '0 15px'}}>清空记忆</button>
+          </div>
+        </section>
+
+        <section style={styles.panel} ref={outputRef}>
+          <div style={styles.panelHeader}><div style={styles.panelTitle}>生成结果</div></div>
+          {outputs[stage] ? (
+            <><div style={styles.output} className="markdown-body"><ReactMarkdown remarkPlugins={[remarkGfm]}>{outputs[stage]}</ReactMarkdown></div>
+
+              {stage === 2 && outputs[stage] && (() => {
+                try {
+                  let jsonText = outputs[stage];
+
+                  // 🌟 新增：前端也必须剔除思考标签，否则 UI 解析会崩溃
+                  // 即使 </think> 还没输出完（流式生成中），也能把半截思考过程全杀掉
+                  jsonText = jsonText.replace(/<think>[\s\S]*?(<\/think>|$)/g, '');
+                  jsonText = jsonText.replace(/<thought>[\s\S]*?(<\/thought>|$)/g, '');
+
+                  if (jsonText.includes("```json")) {
+                    jsonText = jsonText.split("```json")[1].split("```")[0];
+                  } else if (jsonText.includes("```")) {
+                    jsonText = jsonText.split("```")[1].split("```")[0];
+                  }
+
+                  // 🌟 新增：自动寻找数组的起始点，忽略前面的废话
+                  const startIdx = jsonText.indexOf('[');
+                  if (startIdx !== -1) {
+                    jsonText = jsonText.substring(startIdx);
+                  }
+
+                  // 全局清洗：剔除零宽空格，防止 JSON.parse 失败
+                  jsonText = jsonText.replace(/​/g, '');
+                  const parsed = JSON.parse(jsonText);
+
+                  const requiredFields = ["fragment_id", "image_strategy", "source_fragment_id", "image_prompt", "negative_prompt"];
+
+                  const stats = parsed.map(shot => ({
+                    num: shot.fragment_id || "未知",
+                    phase: shot.image_strategy || "未定义",
+                    missing: requiredFields.filter(f => {
+                      // 下列字段在特定逻辑下允许为空字符串，只需校验字段 Key 是否存在
+                      if (["image_prompt", "source_fragment_id", "negative_prompt"].includes(f)) {
+                        return shot[f] === undefined;
+                      }
+                      return !shot[f] || shot[f] === "";
+                    })
+                  }));
+
+                  return (
+                    <div style={{
+                      background: "#0a0a0a", border: "1px solid #333",
+                      borderRadius: "6px", padding: "12px", marginTop: "10px",
+                      fontSize: "12px"
+                    }}>
+                      <div style={{color: "#E8A020", marginBottom: "8px", fontWeight: "bold"}}>
+                        JSON 质量预览 · {parsed.length} 个镜头
+                      </div>
+                      {stats.map(s => (
+                        <div key={s.num} style={{
+                          display: "flex", gap: "8px", alignItems: "center",
+                          padding: "4px 0", borderBottom: "1px solid #1a1a1a"
+                        }}>
+                          <span style={{color: "#888", width: "40px"}}>#{s.num}</span>
+                          <span style={{color: "#666", width: "100px"}}>{s.phase}</span>
+                          {s.missing.length > 0 ? (
+                            <span style={{color: "#ff4444"}}>
+                              缺少: {s.missing.join(", ")}
+                            </span>
+                          ) : (
+                            <span style={{color: "#44ff88"}}>✓ 字段完整</span>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  );
+                } catch (e) {
+                  return (
+                    <div style={{
+                      background: "rgba(239, 68, 68, 0.1)", border: "1px solid rgba(239, 68, 68, 0.3)",
+                      borderRadius: "6px", padding: "12px", marginTop: "10px", fontSize: "12px", color: "#ff8888"
+                    }}>
+                      ⚠️ JSON 尚未闭合或解析异常，AI 可能正在输出中。若长时间无响应或报错，请点击「接续生成」。
+                    </div>
+                  );
+                }
+              })()}
+
+              <div style={styles.outputActions}>
+                <button onClick={() => { navigator.clipboard.writeText(outputs[stage]); setCopied(true); setTimeout(() => setCopied(false), 2000); }} style={styles.btnGhost}>{copied ? "已复制" : "复制全文"}</button>
+                {stage === 1 && (
+                  <button
+                    onClick={() => {
+                      const text = outputs[stage];
+                      // 智能正则提取：匹配所有 "- **即梦直投词（严格 120-280 字）**：" 后面的内容，直到遇到下一个列表项或结束
+                      const regex = /- \*\*即梦直投词.*?\*\*：\n\s*([\s\S]*?)(?=\n##\s*\||$)/g;
+                      let match;
+                      const directParts = [];
+                      while ((match = regex.exec(text)) !== null) {
+                        directParts.push(match[1].trim());
+                      }
+
+                      if (directParts.length > 0) {
+                        navigator.clipboard.writeText(directParts.join("\n\n---\n\n"));
+                        setCopiedDirect(true);
+                        setTimeout(() => setCopiedDirect(false), 2000);
+                      } else {
+                        alert("未检测到标准格式的直投词！请等待生成完成。");
+                      }
+                    }}
+                    style={{...styles.btn, background: "#4ade80", color: "#000"}}
+                  >
+                    {copiedDirect ? "已复制" : "复制直投版（即梦专用）"}
+                  </button>
+                )}
+                <button onClick={handleContinue} disabled={loading} style={{...styles.btnGhost, color: "#4ade80", borderColor: "#4ade80", ...(loading ? {opacity: 0.5} : {})}}>
+                  {loading ? "无缝拼接中..." : "接续生成 (防截断)"}
+                </button>
+
+                {stage < 2 && <button onClick={() => {
+                  const next = [...inputs];
+                  let cleanedOutput = outputs[stage]
+                    .replace(/​/g, '')
+                    .replace(/> 🎬 引擎正在进行前置推演[\s\S]*?\n\n/g, '')
+                    .replace(/> 📝 规划推演完成[\s\S]*?\n\n/g, '')
+                    .trim();
+                  next[stage + 1] = cleanedOutput;
+                  setInputs(next);
+                  setStage(stage + 1);
+                }} style={{...styles.btn, marginLeft: 'auto'}}>传入下一阶段 →</button>}
+              </div></>
+          ) : (<div style={styles.empty}>输入内容并点击生成以开始 (已挂载 {selectedIPs.length} 个IP知识库)</div>)}
+        </section>
+      </main>
+
+      {showSettings && (
+        <div style={styles.modalOverlay}>
+          <div style={styles.modalContent}>
+            <div style={styles.modalHeader}>
+              <h2 style={{margin: 0, color: "#E8A020"}}>主引擎配置台 (异构模型节点矩阵)</h2>
+              <button onClick={() => setShowSettings(false)} style={styles.closeBtn}>×</button>
+            </div>
+            <div style={styles.modalBody}>
+              <div style={styles.configCard}>
+                <h3 style={styles.modalH3}>高级模型路由配置 (Model Routing)</h3>
+
+                <div style={{ display: 'flex', gap: '5px', background: '#000', padding: '4px', borderRadius: '6px', marginBottom: '15px' }}>
+                  {Object.entries(config.routes).map(([key, r]) => (
+                    <button
+                      key={key}
+                      onClick={() => setActiveRouteTab(key)}
+                      style={{ flex: 1, padding: '8px', border: 'none', borderRadius: '4px', fontSize: '12px', cursor: 'pointer', fontWeight: 'bold', background: activeRouteTab === key ? AMBER : 'transparent', color: activeRouteTab === key ? '#000' : MUTED }}
+                    >
+                      {r.name}
+                    </button>
+                  ))}
+                </div>
+
+                <div style={{ background: 'rgba(255,255,255,0.02)', padding: '15px', borderRadius: '8px', border: `1px solid ${BORDER}` }}>
+                  <div style={{ marginBottom: '10px' }}>
+                    <div style={{ fontSize: '12px', color: MUTED, marginBottom: '5px' }}>代理地址池 (Base URLs)</div>
+                    <textarea value={config.routes[activeRouteTab].url} onChange={e => setConfig(prev => ({...prev, routes: {...prev.routes, [activeRouteTab]: {...prev.routes[activeRouteTab], url: e.target.value}}}))} style={{ width: '100%', background: '#000', border: `1px solid ${BORDER}`, color: '#FFF', padding: '8px', borderRadius: '4px', resize: 'vertical', minHeight: '40px' }} placeholder="如: [https://api.openai.com/v1](https://api.openai.com/v1)" />
+                  </div>
+                  <div style={{ marginBottom: '10px' }}>
+                    <div style={{ fontSize: '12px', color: MUTED, marginBottom: '5px' }}>API Key 池 (API Keys)</div>
+                    <textarea value={config.routes[activeRouteTab].key} onChange={e => setConfig(prev => ({...prev, routes: {...prev.routes, [activeRouteTab]: {...prev.routes[activeRouteTab], key: e.target.value}}}))} style={{ width: '100%', background: '#000', border: `1px solid ${BORDER}`, color: '#FFF', padding: '8px', borderRadius: '4px', resize: 'vertical', minHeight: '40px' }} placeholder="如: sk-..." />
+                  </div>
+                  <div>
+                    <div style={{ fontSize: '12px', color: MUTED, marginBottom: '5px' }}>模型池 (Models)</div>
+                    <textarea value={config.routes[activeRouteTab].model} onChange={e => setConfig(prev => ({...prev, routes: {...prev.routes, [activeRouteTab]: {...prev.routes[activeRouteTab], model: e.target.value}}}))} style={{ width: '100%', background: '#000', border: `1px solid ${BORDER}`, color: '#FFF', padding: '8px', borderRadius: '4px', resize: 'vertical', minHeight: '40px' }} placeholder="如: gpt-4o" />
+                  </div>
+
+                  <div style={{ marginTop: '15px', display: 'flex', alignItems: 'center', gap: '10px', background: 'rgba(232,160,32,0.1)', padding: '10px', borderRadius: '6px', border: '1px solid rgba(232,160,32,0.3)' }}>
+                    <div style={{ fontSize: '13px', color: '#E8A020', fontWeight: 'bold' }}>🧠 开启深度思考模式 (仅限支持模型)</div>
+                    <label style={{ display: 'flex', alignItems: 'center', cursor: 'pointer', position: 'relative' }}>
+                      <input
+                        type="checkbox"
+                        checked={config.routes[activeRouteTab].is_thinking || false}
+                        onChange={e => setConfig(prev => ({
+                          ...prev,
+                          routes: {
+                            ...prev.routes,
+                            [activeRouteTab]: { ...prev.routes[activeRouteTab], is_thinking: e.target.checked }
+                          }
+                        }))}
+                        style={{ width: '18px', height: '18px', cursor: 'pointer', accentColor: '#E8A020' }}
+                      />
+                    </label>
+                    <span style={{ fontSize: '11px', color: MUTED }}>勾选后后台将附带 extra_body 触发 reasoning_content</span>
+                  </div>
+                </div>
+              </div>
+
+              <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '20px'}}>
+                <h3 style={{...styles.modalH3, marginTop: 0}}>核心系统提示词</h3>
+                <button onClick={() => {
+  if(window.confirm("确定恢复默认？")) {
+    const newConfig = { ...config, prompts: { ...DEFAULT_PROMPTS } };
+    setConfig(newConfig);
+    localStorage.setItem("micro_epic_config_v30", JSON.stringify(newConfig));
+  }
+}} style={styles.resetBtn}>恢复默认</button>
+              </div>
+              <div style={styles.promptTabs}>
+                {STAGES.map(s => (
+                  <div key={s.id} style={{marginBottom: '15px'}}>
+                    <label style={{color: '#E8A020', fontSize: '13px', display:'block', marginBottom:'5px'}}>{s.label}指令</label>
+                    <textarea style={styles.promptInput} value={config.prompts[s.id]} onChange={e => setConfig({...config, prompts: {...config.prompts, [s.id]: e.target.value}})} />
+                  </div>
+                ))}
+              </div>
+            </div>
+            <div style={styles.modalFooter}>
+              <button onClick={() => setShowSettings(false)} style={styles.btnGhost}>取消</button>
+              <button onClick={handleSaveConfig} style={styles.btn}>保存配置</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showRadar && (
+        <div style={styles.modalOverlay}>
+          <div style={{...styles.modalContent, width: '1000px'}}>
+            <div style={styles.modalHeader}>
+              <h2 style={{margin: 0, color: "#E8A020"}}>RAG 数据蒸馏引擎</h2>
+              <button onClick={() => setShowRadar(false)} style={styles.closeBtn}>×</button>
+            </div>
+            <div style={{...styles.modalBody, display: 'flex', gap: '20px'}}>
+              <div style={{flex: 1, display: 'flex', flexDirection: 'column', gap: '15px'}}>
+
+                {/* 🌟 核心修改点：三分天下按钮 🌟 */}
+                <div style={{display: 'flex', gap: '8px', padding: '4px', background: '#000', borderRadius: '6px'}}>
+                   <button onClick={() => {setRadarMode("json"); setWashResult(""); setWashJson("");}} style={{flex: 1, padding: '8px 4px', border: 'none', borderRadius: '4px', background: radarMode === "json" ? AMBER : "transparent", color: radarMode === "json" ? "#000" : MUTED, cursor: 'pointer', fontWeight: 'bold', fontSize: '12px'}}>1. 提取 JSON 范例</button>
+                   <button onClick={() => {setRadarMode("core"); setWashResult(""); setWashJson("");}} style={{flex: 1, padding: '8px 4px', border: 'none', borderRadius: '4px', background: radarMode === "core" ? AMBER : "transparent", color: radarMode === "core" ? "#000" : MUTED, cursor: 'pointer', fontWeight: 'bold', fontSize: '12px'}}>2. 提炼通用法则</button>
+                   <button onClick={() => {setRadarMode("ip"); setWashResult(""); setWashJson("");}} style={{flex: 1, padding: '8px 4px', border: 'none', borderRadius: '4px', background: radarMode === "ip" ? AMBER : "transparent", color: radarMode === "ip" ? "#000" : MUTED, cursor: 'pointer', fontWeight: 'bold', fontSize: '12px'}}>3. 逆向推演专属 IP</button>
+                </div>
+
+                <div style={{background: 'rgba(232,160,32,0.1)', padding: '15px', borderRadius: '6px', border: '1px dashed #E8A020'}}>
+                  {radarMode === "json" && (
+                    <p style={{color: '#4ade80', fontSize: '13px', margin: '0 0 10px 0'}}>
+                      💡 <b>局部高精提取：</b>由于 JSON 结构极为复杂，为防止大模型输出被截断，<b>请每次仅粘贴 3-5 个神级镜头的描述进行提取。</b>
+                    </p>
+                  )}
+                  {radarMode === "core" && (
+                    <p style={{color: '#D4D0C8', fontSize: '13px', margin: '0 0 10px 0'}}>将拉片内容提炼为通用分镜规律与美学法则，自动存入 <b>core/</b> 目录供所有项目复用。</p>
+                  )}
+                  {radarMode === "ip" && (
+                    <div style={{display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '10px'}}>
+                       <span style={{color: '#D4D0C8', fontSize: '13px'}}>建立圣经目标宇宙名称：</span>
+                       <input type="text" value={newIpName} onChange={e => setNewIpName(e.target.value)} style={{background: "#000", border: "1px solid #222226", color: "#FFF", padding: "10px 12px", borderRadius: "4px", fontSize: "13px", outline: "none", flex: 1}} placeholder="例如：刀盾狗宇宙" />
+                    </div>
+                  )}
+                  <textarea
+                    style={{background: "#000", border: "1px solid #222226", color: "#D4D0C8", padding: "12px", borderRadius: "4px", width: "100%", resize: "vertical", fontSize: "12px", outline: "none", boxSizing: "border-box", fontFamily: "inherit", height: '280px'}}
+                    value={rawAnalysisText}
+                    onChange={e => setRawAnalysisText(e.target.value)}
+                    placeholder={
+                      radarMode === "json" ? "粘贴 3-5 个镜头的动作大白话描述，引擎将其精准转换为 Few-Shot 范例..." :
+                      radarMode === "core" ? "粘贴长篇优秀视频拉片描述，提炼底层经验库法则..." :
+                      "粘贴您让Kimi/Qwen分析角色的原始反馈数据，引擎将其整理出 V3.0 专属圣经！"
+                    }
+                  />
+                </div>
+                <button onClick={handleWashText} disabled={washing || !rawAnalysisText.trim()} style={{background: AMBER, color: BG, border: "none", padding: "12px 24px", borderRadius: "6px", fontWeight: "bold", cursor: "pointer", width: '100%', ...(washing || !rawAnalysisText.trim() ? {opacity: 0.5, cursor: "not-allowed"} : {})}}>
+                  {washing ? "深度推理提炼中..." : (
+                    radarMode === "json" ? "提取 JSON 镜头范例" :
+                    radarMode === "core" ? "提取通用导演法则" :
+                    "四步执行提取IP圣经 V3.0"
+                  )}
+                </button>
+              </div>
+              
+              <div style={{flex: 1.2, background: '#000', border: '1px solid #222226', borderRadius: '6px', padding: '15px', overflowY: 'auto', maxHeight: '500px'}}>
+                {washResult ? (
+                  <div>
+                    <div className="markdown-body" style={{fontSize: '13px', whiteSpace: 'pre-wrap'}}><ReactMarkdown remarkPlugins={[remarkGfm]}>{washResult}</ReactMarkdown></div>
+                    {washJson && (
+                      <div style={{marginTop: '12px', position: 'relative'}}>
+                        <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px'}}>
+                          <span style={{color: '#8BC34A', fontSize: '12px', fontWeight: 'bold'}}>提取的镜头参数 JSON：</span>
+                          <button onClick={() => {navigator.clipboard.writeText(washJson);}} style={{background: '#333', color: '#ccc', border: '1px solid #555', borderRadius: '4px', padding: '3px 10px', fontSize: '12px', cursor: 'pointer'}}>复制</button>
+                        </div>
+                        <pre style={{background: '#0D0D0D', border: '1px solid #333', borderRadius: '4px', padding: '12px', overflowX: 'auto', fontSize: '12px', lineHeight: '1.5', maxHeight: '400px', overflowY: 'auto'}}><code style={{color: '#E0E0E0'}}>{washJson}</code></pre>
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <div style={{color: '#5A5750', textAlign: 'center', marginTop: '200px'}}>等待提炼素材...</div>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 自动化切片暂停确认弹窗 */}
+      {showChunkModal && (
+        <div style={styles.modalOverlay}>
+          <div style={{...styles.modalContent, width: '400px', padding: '30px', textAlign: 'center'}}>
+            <h3 style={{color: "#E8A020", marginTop: 0}}>切片生成暂停</h3>
+            <p style={{color: "#E4E4E7", fontSize: '14px', lineHeight: '1.6'}}>
+              ✅ <b>{chunkQueue[chunkIndex]?.join(" & ")}</b> 已完美推演并无缝拼接！<br/><br/>
+              即将推演下一组：<b>{chunkQueue[chunkIndex + 1]?.join(" & ")}</b><br/>
+              是否确认继续？
+            </p>
+            <div style={{display: 'flex', gap: '15px', justifyContent: 'center', marginTop: '25px'}}>
+              <button onClick={() => setShowChunkModal(false)} style={styles.btnGhost}>终止推演</button>
+              {/* 新增重试按钮 */}
+              <button
+                onClick={() => executeChunk(chunkQueue, chunkIndex, inputs[1])}
+                style={{...styles.btnGhost, color: '#ef4444', borderColor: 'rgba(239, 68, 68, 0.3)'}}
+              >
+                ↻ 重试本段
+              </button>
+              <button
+                onClick={() => {
+                  const nextIdx = chunkIndex + 1;
+                  setChunkIndex(nextIdx);
+                  executeChunk(chunkQueue, nextIdx, inputs[1]);
+                }}
+                style={styles.btn}
+              >
+                🚀 确认继续
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+const AMBER = "#E8A020";
+const AMBER_HOVER = "#FBBF24";
+const BG = "#09090B";
+const SURFACE = "#141417";
+const BORDER = "#27272A";
+const TEXT = "#E4E4E7";
+const MUTED = "#A1A1AA";
+
+const styles = {
+  root: { height: "100vh", width: "100vw", background: BG, color: TEXT, fontFamily: "'Noto Serif SC', serif", position: "relative", display: "flex", flexDirection: "column", overflow: "hidden" },
+  grain: { position: "fixed", inset: 0, backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.03'/%3E%3C/svg%3E")`, pointerEvents: "none", zIndex: 0 },
+
+  header: { borderBottom: "1px solid " + BORDER, padding: "16px 32px", display: "flex", justifyContent: "space-between", alignItems: "center", position: "relative", zIndex: 10, background: "rgba(9, 9, 11, 0.7)", backdropFilter: "blur(12px)" },
+  headerInner: { display: "flex", alignItems: "center", gap: 16 },
+  logo: { fontSize: 26, color: AMBER, textShadow: "0 0 15px rgba(232,160,32,0.4)" },
+  title: { fontSize: 18, fontWeight: "800", color: "#FFF", letterSpacing: "1px" },
+  titleSub: { fontSize: 12, color: AMBER, marginTop: 4, opacity: 0.8 },
+  settingsBtn: { background: "rgba(255,255,255,0.03)", color: TEXT, border: "1px solid " + BORDER, padding: "8px 18px", borderRadius: "6px", cursor: "pointer", transition: "all 0.2s ease", fontSize: "13px" },
+
+  nav: { display: "flex", borderBottom: "1px solid " + BORDER, position: "relative", zIndex: 1, background: SURFACE },
+  navBtn: { flex: 1, display: "flex", justifyContent: "center", alignItems: "center", gap: 12, padding: "16px 24px", background: "none", border: "none", borderRight: "1px solid " + BORDER, color: MUTED, cursor: "pointer", outline: "none", transition: "all 0.3s ease" },
+  navBtnActive: { color: "#FFF", background: "rgba(232,160,32,0.08)", boxShadow: "inset 0 -2px 0 " + AMBER },
+  navStep: { color: AMBER, fontSize: "12px", marginRight: "4px", fontWeight: "bold", opacity: 0.8 },
+
+  main: { display: "grid", gridTemplateColumns: "1fr 1.3fr", flex: 1, position: "relative", zIndex: 1, overflow: "hidden" },
+  panel: { padding: "24px 32px", borderRight: "1px solid " + BORDER, display: "flex", flexDirection: "column", gap: 16, overflowY: "auto", height: "100%", boxSizing: "border-box" },
+  panelHeader: { borderBottom: "1px solid " + BORDER, paddingBottom: "12px", display: "flex", justifyContent: "space-between", alignItems: "center" },
+  panelTitle: { fontSize: "16px", fontWeight: "bold", color: "#FFF", display: "flex", alignItems: "center", gap: "8px" },
+
+  textarea: { background: "rgba(0,0,0,0.3)", border: "1px solid " + BORDER, color: TEXT, padding: "20px", borderRadius: "8px", flex: 1, minHeight: "300px", resize: "none", outline: "none", lineHeight: 1.7, fontSize: "14px", transition: "border-color 0.3s ease" },
+
+  btn: { background: AMBER, color: "#000", border: "none", padding: "14px 28px", borderRadius: "6px", fontWeight: "bold", cursor: "pointer", transition: "all 0.2s ease", fontSize: "14px" },
+  btnDisabled: { opacity: 0.5, cursor: "not-allowed", filter: "grayscale(100%)" },
+  btnGhost: { background: "rgba(232,160,32,0.05)", color: AMBER, border: "1px solid rgba(232,160,32,0.3)", padding: "12px 20px", borderRadius: "6px", cursor: "pointer", outline: "none", transition: "all 0.2s ease", fontSize: "13px" },
+
+  output: { background: "rgba(0,0,0,0.2)", border: "1px solid " + BORDER, borderRadius: "8px", padding: "24px", flex: 1, overflowY: "auto", boxShadow: "inset 0 2px 15px rgba(0,0,0,0.2)" },
+  outputActions: { display: "flex", gap: "12px", marginTop: "16px", paddingTop: "16px", borderTop: "1px solid " + BORDER },
+  empty: { flex: 1, display: "flex", alignItems: "center", justifyContent: "center", color: BORDER, fontSize: "15px", fontWeight: "bold", letterSpacing: "1px" },
+
+  modalOverlay: { position: "fixed", top: 0, left: 0, right: 0, bottom: 0, background: "rgba(0,0,0,0.85)", zIndex: 999, display: "flex", justifyContent: "center", alignItems: "center", backdropFilter: "blur(8px)" },
+  modalContent: { background: SURFACE, border: "1px solid " + BORDER, borderRadius: "12px", width: "850px", maxWidth: "95%", maxHeight: "90vh", display: "flex", flexDirection: "column", boxShadow: "0 20px 50px rgba(0,0,0,0.7)" },
+  modalHeader: { padding: "20px 32px", borderBottom: "1px solid " + BORDER, display: "flex", justifyContent: "space-between", alignItems: "center", background: "rgba(255,255,255,0.02)" },
+  closeBtn: { background: "none", border: "none", color: MUTED, fontSize: "28px", cursor: "pointer", outline: "none", transition: "color 0.2s ease" },
+  modalBody: { padding: "32px", overflowY: "auto", flex: 1 },
+  modalH3: { fontSize: "15px", color: AMBER, marginTop: "0", marginBottom: "20px", borderBottom: "1px solid " + BORDER, paddingBottom: "10px", fontWeight: "bold" },
+  configCard: { background: "rgba(0,0,0,0.3)", border: "1px solid " + BORDER, padding: "20px", borderRadius: "8px", marginBottom: "24px" },
+  inputGroup: { display: "flex", flexDirection: "column", gap: "8px", marginBottom: "16px" },
+  row: { display: "flex", gap: "20px" },
+  promptTabs: { background: "rgba(0,0,0,0.2)", padding: "20px", borderRadius: "8px", border: "1px solid " + BORDER },
+  promptInput: { background: "#000", border: "1px solid " + BORDER, color: TEXT, padding: "16px", borderRadius: "6px", width: "100%", resize: "vertical", fontSize: "13px", outline: "none", boxSizing: "border-box", fontFamily: "inherit", lineHeight: 1.6 },
+  resetBtn: { background: "transparent", border: "none", color: "#ef4444", fontSize: "13px", cursor: "pointer", outline: "none", opacity: 0.8 },
+  modalFooter: { padding: "20px 32px", borderTop: "1px solid " + BORDER, display: "flex", justifyContent: "flex-end", gap: "16px", background: "rgba(0,0,0,0.2)" }
+};
+
+if (typeof document !== "undefined") {
+  const existingTag = document.getElementById("micro-epic-styles");
+  if (existingTag) existingTag.remove();
+
+  const styleTag = document.createElement("style");
+  styleTag.id = "micro-epic-styles";
+  styleTag.textContent = "" +
+    "::-webkit-scrollbar { width: 8px; height: 8px; }\n" +
+    "::-webkit-scrollbar-track { background: transparent; }\n" +
+    "::-webkit-scrollbar-thumb { background: " + BORDER + "; border-radius: 4px; }\n" +
+    "::-webkit-scrollbar-thumb:hover { background: " + MUTED + "; }\n" +
+    "button { transition: all 0.2s ease-in-out !important; }\n" +
+    "button:not([disabled]):hover { transform: translateY(-1px); }\n" +
+    "button[style*='background: " + AMBER + "']:not([disabled]):hover { background: " + AMBER_HOVER + " !important; box-shadow: 0 4px 15px rgba(232,160,32,0.3); }\n" +
+    "button[style*='border: 1px solid rgba(232,160,32,0.3)']:not([disabled]):hover { background: rgba(232,160,32,0.15) !important; }\n" +
+    ".closeBtn:hover { color: #FFF !important; transform: none !important; }\n" +
+    "textarea:focus { border-color: " + AMBER + " !important; box-shadow: inset 0 0 0 1px rgba(232,160,32,0.2); }\n" +
+    ".markdown-body { color: " + TEXT + "; }\n" +
+    ".markdown-body h1, .markdown-body h2, .markdown-body h3 { color: #FFF; margin-top: 0; padding-bottom: 8px; border-bottom: 1px solid " + BORDER + "; }\n" +
+    ".markdown-body h4 { color: " + AMBER + "; }\n" +
+    ".markdown-body strong { color: " + AMBER + "; }\n" +
+    ".markdown-body table { width: 100%; border-collapse: collapse; margin-bottom: 20px; font-size: 13px; border-radius: 8px; overflow: hidden; }\n" +
+    ".markdown-body th, .markdown-body td { border: 1px solid " + BORDER + "; padding: 12px 16px; text-align: left; }\n" +
+    ".markdown-body th { background: rgba(232,160,32,0.1); color: " + AMBER + "; font-weight: bold; }\n" +
+    ".markdown-body tr:nth-child(even) { background: rgba(255,255,255,0.02); }\n" +
+    ".markdown-body pre { background: #000 !important; padding: 16px; border-radius: 8px; overflow-x: auto; border: 1px solid " + BORDER + "; box-shadow: inset 0 2px 10px rgba(0,0,0,0.5); }\n" +
+    ".markdown-body code { font-family: 'Fira Code', monospace; color: " + AMBER_HOVER + "; white-space: pre-wrap; font-size: 12px; }\n" +
+    ".markdown-body p code { background: rgba(232,160,32,0.1); padding: 2px 6px; border-radius: 4px; border: 1px solid rgba(232,160,32,0.2); }\n" +
+    ".markdown-body blockquote { border-left: 4px solid " + AMBER + "; padding-left: 16px; color: " + MUTED + "; background: rgba(232,160,32,0.05); margin: 0 0 16px 0; padding: 12px 16px; border-radius: 0 6px 6px 0; }\n";
+  document.head.appendChild(styleTag);
+}
