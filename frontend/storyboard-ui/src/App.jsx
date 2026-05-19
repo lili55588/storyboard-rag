@@ -2562,6 +2562,108 @@ ${review}`;
     }
   };
 
+  const buildReviewRewritePackPrompt = () => {
+    const stageId = STAGES[stage].id;
+    const currentContent = stripCompletionEndMarker(outputs[stage] || "");
+    const review = scriptAppealReview?.trim();
+    if (!currentContent || !review) return "";
+
+    const activePreset = STYLE_PRESETS[styleMode] || {};
+    let systemRules = config.prompts[stageId] || "";
+    if (activePreset.script_patch && stageId === "script") {
+      systemRules += "\n\n" + activePreset.script_patch;
+    }
+    if (activePreset.visual_patch && stageId === "visual") {
+      systemRules += "\n\n" + activePreset.visual_patch;
+    }
+    if (activePreset.shot_patch && stageId === "shot") {
+      systemRules += "\n\n" + activePreset.shot_patch;
+    }
+    if (stageId === "visual") {
+      const modeInstruction = sceneImagePromptMode === "mj"
+        ? "【场景图提示词模式：MJ英文生图】每个场景卡必须输出且只输出一种场景生图提示词字段：MJ英文场景生图提示词。"
+        : "【场景图提示词模式：即梦中文生图】每个场景卡必须输出且只输出一种场景生图提示词字段：即梦中文场景生图提示词。";
+      systemRules += "\n\n" + modeInstruction;
+    }
+
+    const stageRewriteGuides = {
+      script: "请重写为修订后的正式剧本。保留核心主角、核心奇观、核心关系弧和无对白/少对白设定，不要换成新故事。",
+      visual: "请重写为修订后的固定要素库包。重点修正角色/场景/道具/色彩/材质/场景图提示词/参考图编号问题，不要输出分镜或视频提示词。",
+      shot: "请重写为修订后的分镜提示词包。重点修正镜头顺序、景别运镜、动作因果、剪辑节奏、连续性和生成单元可执行性。",
+      image: "请重写为修订后的场景图生图清单。重点修正 @图片10-49 场景编号、空场景 prompt、表演留白、光线材质和负面约束；不要生成关键帧、首尾帧、姿势图或 @图片50+。"
+    };
+
+    let revisionInput = `【任务】请根据会审报告，对下方现有${STAGES[stage].label}阶段产出进行“小修重写”。
+
+【硬性要求】
+1. 只输出修订后的当前阶段正式产出，不要输出复盘、解释、修改清单或对比说明。
+2. ${stageRewriteGuides[stageId] || "保留原项目核心设定，只做针对性修订。"}
+3. 优先执行会审报告里的“共识问题”“最需要立刻修的风险”“可直接复制的修稿指令”。
+4. 如果会审意见互相冲突，优先听“执行制片评审”和“会审结论”中的最终决策。
+5. 修稿目标是让当前阶段产出可以直接进入下一阶段：表达更清楚、连续性更稳、制作执行更可靠。
+6. 输出给前端导入使用：不要包 Markdown 代码块，不要额外输出 end 标记。
+
+【原始用户要求】
+${inputs[0]?.trim() || "（无）"}
+
+【前置阶段内容】
+${getPreviousStageContext(stage) || "（无）"}
+
+【当前阶段原产出】
+${currentContent}
+
+【会审报告】
+${review}`;
+
+    if (stageId === "shot") {
+      const script = stripCompletionEndMarker(outputs[0] || "");
+      const shotContinuityGuard = `【阶段连续性硬约束】
+1. 只允许使用阶段一剧本和阶段二固定要素库中已经存在的场景编号、地点、道具和参考图编号；不要新增、删除或改名场景。
+2. 每个生成单元必须继承对应场景卡的场景图编号，例如 | S1 | 使用 @图片10，| S2 | 使用 @图片11；不要把 @图片编号挪给其他地点。
+3. 如果总览、编号表、示例或旧历史内容互相冲突，以阶段一剧本正文和阶段二“场景卡 · | S? |”为准。
+4. 禁止把后续场景改写成固定要素库里没有的新场景，除非这些词已在剧本正文和对应场景卡中明确出现。
+5. 每个场景必须覆盖剧本中该场的目标、阻力、角色选择和可见结果。
+6. 总览里的生成单元数量和总成片时长必须与正文实际生成单元一致，输出前自行核算一遍。`;
+      revisionInput = (script ? "【完整剧本文档（阶段一产出）】\n" + script + "\n\n---\n\n" : "")
+        + "【分镜重写任务】\n" + revisionInput
+        + "\n\n【场景顺序强制规则】\n请严格按照剧本与场景卡编号从 | S1 |、| S2 |、| S3 | 依次往后生成。"
+        + "\n\n" + shotContinuityGuard;
+    }
+
+    if (stageId === "image") {
+      const script = stripCompletionEndMarker(outputs[0] || "");
+      const visual = stripCompletionEndMarker(outputs[1] || "");
+      const shot = stripCompletionEndMarker(outputs[2] || "");
+      revisionInput = [
+        script ? "【完整剧本文档（阶段一产出）】\n" + script : "",
+        visual ? "【固定要素库包（阶段二产出）】\n" + visual : "",
+        shot ? "【分镜提示词包（阶段三产出）】\n" + shot : "",
+        "【场景图生图清单重写任务】\n" + revisionInput
+      ].filter(Boolean).join("\n\n---\n\n");
+    }
+
+    return `你是一个高级模型 CLI 执行代理。请严格按下面任务重写当前阶段产出，并只返回可导入前端的完整新版正文。
+
+==============================
+【当前阶段系统规则】
+==============================
+${systemRules}
+
+==============================
+【会审后重写任务包】
+==============================
+${revisionInput}`;
+  };
+
+  const handlePackReviewRewrite = async () => {
+    const packed = buildReviewRewritePackPrompt();
+    if (!packed) {
+      return alert("需要先有当前阶段输出，并完成一次会审，才能打包会审重写任务。");
+    }
+    await navigator.clipboard.writeText(packed);
+    alert(`✅ 会审重写任务包已复制到剪贴板（${packed.length} 字 ≈ ${Math.ceil(packed.length / 2)} tokens）\n\n粘贴到 CLI 执行；拿到完整新版后，点击本阶段的“导入结果”按钮覆盖。`);
+  };
+
   const handleGenerate = async () => {
     const input = inputs[stage].trim();
     if (!input) return;
@@ -3456,6 +3558,7 @@ ${visualGlobalContext || "（无）"}
                 <button onClick={() => handlePackArtCut('auto')} disabled={!outputs[1]} style={{...styles.btnGhost, color: '#facc15', borderColor: 'rgba(250,204,21,0.35)', ...(!outputs[1] ? styles.btnDisabled : {})}}>📋 美术二稿</button>
                 <button onClick={() => handlePackArtCut('first')} disabled={!outputs[1]} style={{...styles.btnGhost, color: '#facc15', borderColor: 'rgba(250,204,21,0.35)', ...(!outputs[1] ? styles.btnDisabled : {})}}>📋 二稿S1</button>
                 <button onClick={() => handlePackArtCut('last')} disabled={!outputs[1]} style={{...styles.btnGhost, color: '#facc15', borderColor: 'rgba(250,204,21,0.35)', ...(!outputs[1] ? styles.btnDisabled : {})}}>📋 二稿末场</button>
+                <button onClick={handlePackReviewRewrite} disabled={!outputs[1] || !scriptAppealReview} title={!scriptAppealReview ? "先在右侧完成一次会审，再打包给 CLI 重写" : ""} style={{...styles.btnGhost, color: '#86efac', borderColor: 'rgba(74,222,128,0.35)', ...(!outputs[1] || !scriptAppealReview ? styles.btnDisabled : {})}}>📋 会审重写包</button>
               </div>
             </div>
           )}
@@ -3477,6 +3580,7 @@ ${visualGlobalContext || "（无）"}
                 <button onClick={() => handlePackCineCut('auto')} disabled={!outputs[2]} style={{...styles.btnGhost, color: '#c4b5fd', borderColor: 'rgba(196,181,253,0.35)', ...(!outputs[2] ? styles.btnDisabled : {})}}>📋 摄影二稿</button>
                 <button onClick={() => handlePackCineCut('first')} disabled={!outputs[2]} style={{...styles.btnGhost, color: '#c4b5fd', borderColor: 'rgba(196,181,253,0.35)', ...(!outputs[2] ? styles.btnDisabled : {})}}>📋 二稿首镜</button>
                 <button onClick={() => handlePackCineCut('last')} disabled={!outputs[2]} style={{...styles.btnGhost, color: '#c4b5fd', borderColor: 'rgba(196,181,253,0.35)', ...(!outputs[2] ? styles.btnDisabled : {})}}>📋 二稿末镜</button>
+                <button onClick={handlePackReviewRewrite} disabled={!outputs[2] || !scriptAppealReview} title={!scriptAppealReview ? "先在右侧完成一次会审，再打包给 CLI 重写" : ""} style={{...styles.btnGhost, color: '#86efac', borderColor: 'rgba(74,222,128,0.35)', ...(!outputs[2] || !scriptAppealReview ? styles.btnDisabled : {})}}>📋 会审重写包</button>
               </div>
             </div>
           )}
