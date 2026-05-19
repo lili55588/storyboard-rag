@@ -1152,6 +1152,32 @@ const REVIEW_ROUTES = [
   { id: "summary", label: "仲裁总结模型", hint: "推荐：Qwen3.6-Max-Preview" },
 ];
 
+const EMPTY_ROUTE_CONFIG = {
+  name: "",
+  url: "",
+  key: "",
+  model: "",
+  is_thinking: false,
+  use_proxy: false,
+  proxy_url: "",
+};
+
+const DEFAULT_ROUTE_SOURCES = Object.fromEntries(STAGES.map(stage => [stage.id, "self"]));
+const DEFAULT_REVIEW_ROUTE_SOURCES = Object.fromEntries(REVIEW_ROUTES.map(route => [route.id, "self"]));
+
+const normalizeRouteConfig = (route = {}, fallback = {}) => ({
+  ...EMPTY_ROUTE_CONFIG,
+  ...fallback,
+  ...(route || {}),
+  is_thinking: Boolean(route?.is_thinking),
+  use_proxy: Boolean(route?.use_proxy),
+  proxy_url: route?.proxy_url || "",
+});
+
+const mergeSourceDefaults = (defaults, stored = {}) => (
+  Object.fromEntries(Object.keys(defaults).map(key => [key, stored?.[key] || defaults[key]]))
+);
+
 export default function App() {
   const [stage, setStage] = useState(0);
   const [inputs, setInputs] = useState(["", "", "", ""]);
@@ -1167,18 +1193,20 @@ export default function App() {
   const [config, setConfig] = useState({
     prompts: { ...DEFAULT_PROMPTS },
     routes: {
-      script: { name: "1. 剧本生成", url: "", key: "", model: "", is_thinking: false },
-      visual: { name: "2. 视觉开发", url: "", key: "", model: "", is_thinking: false },
-      shot: { name: "3. 分镜提示词 (兼数据提炼)", url: "", key: "", model: "", is_thinking: false },
-      image: { name: "4. 场景图生图清单", url: "", key: "", model: "", is_thinking: false }
+      script: { ...EMPTY_ROUTE_CONFIG, name: "1. 剧本生成" },
+      visual: { ...EMPTY_ROUTE_CONFIG, name: "2. 视觉开发" },
+      shot: { ...EMPTY_ROUTE_CONFIG, name: "3. 分镜提示词 (兼数据提炼)" },
+      image: { ...EMPTY_ROUTE_CONFIG, name: "4. 场景图生图清单" }
     },
+    route_sources: { ...DEFAULT_ROUTE_SOURCES },
     review_routes: {
-      audience: { name: "观众留存评审", url: "", key: "", model: "", is_thinking: false },
-      visual: { name: "视觉奇观评审", url: "", key: "", model: "", is_thinking: false },
-      story: { name: "导演编剧评审", url: "", key: "", model: "", is_thinking: false },
-      execution: { name: "执行制片评审", url: "", key: "", model: "", is_thinking: false },
-      summary: { name: "仲裁总结模型", url: "", key: "", model: "", is_thinking: false }
-    }
+      audience: { ...EMPTY_ROUTE_CONFIG, name: "观众留存评审" },
+      visual: { ...EMPTY_ROUTE_CONFIG, name: "视觉奇观评审" },
+      story: { ...EMPTY_ROUTE_CONFIG, name: "导演编剧评审" },
+      execution: { ...EMPTY_ROUTE_CONFIG, name: "执行制片评审" },
+      summary: { ...EMPTY_ROUTE_CONFIG, name: "仲裁总结模型" }
+    },
+    review_route_sources: { ...DEFAULT_REVIEW_ROUTE_SOURCES }
   });
 
   const [availableIPs, setAvailableIPs] = useState([]);
@@ -1374,8 +1402,16 @@ export default function App() {
             shot: prev.prompts.shot,
             image: prev.prompts.image,
           },
-          routes: { ...prev.routes, ...(parsed.routes || {}) },
-          review_routes: { ...prev.review_routes, ...(parsed.review_routes || {}) }
+          routes: Object.fromEntries(Object.keys(prev.routes).map(key => [
+            key,
+            normalizeRouteConfig(parsed.routes?.[key], prev.routes[key])
+          ])),
+          route_sources: mergeSourceDefaults(DEFAULT_ROUTE_SOURCES, parsed.route_sources),
+          review_routes: Object.fromEntries(Object.keys(prev.review_routes).map(key => [
+            key,
+            normalizeRouteConfig(parsed.review_routes?.[key], prev.review_routes[key])
+          ])),
+          review_route_sources: mergeSourceDefaults(DEFAULT_REVIEW_ROUTE_SOURCES, parsed.review_route_sources)
         }));
       } catch {
         console.warn("本地配置解析失败，已使用默认配置");
@@ -1423,24 +1459,108 @@ export default function App() {
     setShowSettings(false);
   };
 
-  const getEffectiveRoutes = (stageId) => {
-    if (stageId === "image" && config.routes.shot?.key) {
-      return {
-        ...config.routes,
-        image: {
-          ...config.routes.shot,
-          name: "4. 场景图生图清单（文本组装用第3阶段模型）"
-        }
-      };
+  const getMainRouteFallback = (routeId) => config.routes?.[routeId] || { name: routeId };
+
+  const resolveMainRoute = (routeId, stack = []) => {
+    const ownRoute = normalizeRouteConfig(config.routes?.[routeId], getMainRouteFallback(routeId));
+    const source = config.route_sources?.[routeId] || "self";
+    if (!source || source === "self") return ownRoute;
+
+    const refId = String(source).replace(/^route:/, "");
+    if (!config.routes?.[refId] || refId === routeId || stack.includes(refId)) {
+      return ownRoute;
     }
-    return config.routes;
+
+    const resolved = resolveMainRoute(refId, [...stack, routeId]);
+    return { ...resolved, name: ownRoute.name || resolved.name };
   };
 
-  const hasEffectiveRouteKey = (stageId) => {
-    if (stageId === "image") {
-      return Boolean(config.routes.shot?.key);
+  const getEffectiveRoutes = () => {
+    const resolved = Object.fromEntries(
+      Object.keys(config.routes || {}).map(routeId => [routeId, resolveMainRoute(routeId)])
+    );
+    if (resolved.image && !resolved.image.key && resolved.shot?.key) {
+      resolved.image = {
+        ...resolved.shot,
+        name: "4. 场景图生图清单（文本组装用第3阶段模型）"
+      };
     }
-    return Boolean(config.routes[stageId]?.key);
+    return resolved;
+  };
+
+  const resolveReviewRoute = (slot, resolvedRoutes = getEffectiveRoutes(), stack = []) => {
+    const reviewFallback = config.review_routes?.[slot] || { name: slot };
+    const ownRoute = normalizeRouteConfig(config.review_routes?.[slot], reviewFallback);
+    const source = config.review_route_sources?.[slot] || "self";
+    if (!source || source === "self") return ownRoute;
+
+    if (String(source).startsWith("route:")) {
+      const routeId = String(source).replace(/^route:/, "");
+      const resolved = resolvedRoutes[routeId];
+      return resolved ? { ...resolved, name: ownRoute.name || resolved.name } : ownRoute;
+    }
+
+    const refSlot = String(source).replace(/^review:/, "");
+    if (!config.review_routes?.[refSlot] || refSlot === slot || stack.includes(refSlot)) {
+      return ownRoute;
+    }
+    const resolved = resolveReviewRoute(refSlot, resolvedRoutes, [...stack, slot]);
+    return { ...resolved, name: ownRoute.name || resolved.name };
+  };
+
+  const getEffectiveReviewRoutes = () => {
+    const resolvedRoutes = getEffectiveRoutes();
+    return Object.fromEntries(
+      Object.keys(config.review_routes || {}).map(slot => [slot, resolveReviewRoute(slot, resolvedRoutes)])
+    );
+  };
+
+  const hasEffectiveRouteKey = (stageId) => Boolean(getEffectiveRoutes()[stageId]?.key);
+
+  const updateRouteField = (routeId, field, value) => {
+    setConfig(prev => ({
+      ...prev,
+      routes: {
+        ...prev.routes,
+        [routeId]: {
+          ...normalizeRouteConfig(prev.routes?.[routeId], { name: routeId }),
+          [field]: value
+        }
+      }
+    }));
+  };
+
+  const updateReviewRouteField = (slot, field, value) => {
+    setConfig(prev => ({
+      ...prev,
+      review_routes: {
+        ...prev.review_routes,
+        [slot]: {
+          ...normalizeRouteConfig(prev.review_routes?.[slot], { name: slot }),
+          [field]: value
+        }
+      }
+    }));
+  };
+
+  const updateRouteSource = (routeId, value) => {
+    setConfig(prev => ({
+      ...prev,
+      route_sources: {
+        ...mergeSourceDefaults(DEFAULT_ROUTE_SOURCES, prev.route_sources),
+        [routeId]: value
+      }
+    }));
+  };
+
+  const updateReviewRouteSource = (slot, value) => {
+    setConfig(prev => ({
+      ...prev,
+      review_route_sources: {
+        ...mergeSourceDefaults(DEFAULT_REVIEW_ROUTE_SOURCES, prev.review_route_sources),
+        [slot]: value
+      }
+    }));
   };
 
   const persistOutput = async (stageId, content, currentRunId) => {
@@ -1724,7 +1844,7 @@ export default function App() {
   };
 
   const generateAndBindAsset = async ({ assetId, category, prompt, description, frameId, referenceIds = [], assetMap }) => {
-    const imageRoute = config.routes.image || {};
+    const imageRoute = getEffectiveRoutes().image || {};
     if (!imageRoute.key) {
       throw new Error("请先在系统设置的 [4. 场景图生图清单] 里配置图片 API Key。");
     }
@@ -1762,7 +1882,8 @@ export default function App() {
   };
 
   const reviewGeneratedSceneAsset = async (scene, imageData) => {
-    const visualReviewRoute = config.review_routes.visual || {};
+    const effectiveReviewRoutes = getEffectiveReviewRoutes();
+    const visualReviewRoute = effectiveReviewRoutes.visual || {};
     if (!visualReviewRoute.key || !imageData?.images?.[0]) return null;
 
     const currentRunId = runId || localStorage.getItem(PIPELINE_RUN_ID_KEY) || "";
@@ -1778,7 +1899,7 @@ export default function App() {
         shot_id: `ASSET-SCENE-${scene.id}`,
         scene_id: scene.sceneId || "",
         run_id: currentRunId,
-        review_routes: config.review_routes,
+        review_routes: effectiveReviewRoutes,
       }),
     });
     const data = await res.json();
@@ -1888,7 +2009,7 @@ export default function App() {
   };
 
   const handleGenerateInspirations = async () => {
-    if (!config.routes.script.key) {
+    if (!hasEffectiveRouteKey("script")) {
       setInspirationError("请先在系统设置的 [1. 剧本生成] 里配置 API Key。");
       return;
     }
@@ -1906,7 +2027,7 @@ export default function App() {
           input: inputs[0],
           style_hint: INSPIRATION_STYLE_HINTS[styleMode] || activePreset?.name || "",
           ip_names: selectedIPs,
-          routes: config.routes
+          routes: getEffectiveRoutes()
         })
       });
       const data = await res.json();
@@ -2010,7 +2131,7 @@ export default function App() {
   const handleGenerateBoardImage = async (index = 0) => {
     const segment = boardPrompts.segments?.[index];
     if (!segment?.gpt) return;
-    if (!config.routes.image.key) {
+    if (!hasEffectiveRouteKey("image")) {
       setBoardPromptError("请先在系统设置的 [4. 场景图生图清单] 中配置 GPTImage2/图片模型 API Key。");
       return;
     }
@@ -2027,7 +2148,7 @@ export default function App() {
     setBoardPromptError("");
 
     try {
-      const imageRoute = config.routes.image || {};
+      const imageRoute = getEffectiveRoutes().image || {};
       const safeRange = (segment.range || `segment-${index + 1}`).replace(/[^0-9A-Za-z_\-\u4e00-\u9fa5]+/g, "_");
       const res = await fetch(`${API_BASE}/generate_image`, {
         method: "POST",
@@ -2237,7 +2358,7 @@ export default function App() {
           original_input: inputs[0],
           ip_names: selectedIPs,
           routes: getEffectiveRoutes(stageId),
-          review_routes: config.review_routes,
+          review_routes: getEffectiveReviewRoutes(),
           review_mode: reviewMode
         })
       });
@@ -2758,7 +2879,7 @@ ${visualGlobalContext || "（无）"}
           system_prompt: chunkSysPrompt, // 🌟 真正应用补丁
           ip_names: selectedIPs,
           run_id: currentRunId,
-          routes: config.routes,
+          routes: getEffectiveRoutes("shot"),
           execution_mode: "default", // 明确告诉后端这是普通单次执行
           segments: []
         }),
@@ -2942,7 +3063,7 @@ ${visualGlobalContext || "（无）"}
 
   const handleWashText = async () => {
     if (!rawAnalysisText.trim()) return alert("请先粘贴视频分析或大白话内容！");
-    if (!config.routes.shot.key) return alert("请先在系统设置的 [3. 分镜提示词] 选项卡中配置 API Key！");
+    if (!hasEffectiveRouteKey("shot")) return alert("请先在系统设置的 [3. 分镜提示词] 选项卡中配置 API Key！");
 
     // 强制引导：如果用户选了JSON模式但文字过多，提出拦截警告
     if (radarMode === "json" && rawAnalysisText.length > 2000) {
@@ -2956,7 +3077,8 @@ ${visualGlobalContext || "（无）"}
     setWashJson("");
 
     // 魔法补丁：告诉后端用第3步的 Key 当作提炼引擎的 Key 用
-    const patchedRoutes = { ...config.routes, jimeng: config.routes.shot };
+    const effectiveRoutes = getEffectiveRoutes("shot");
+    const patchedRoutes = { ...effectiveRoutes, jimeng: effectiveRoutes.shot };
 
     try {
       if (radarMode === "json") {
@@ -3797,16 +3919,34 @@ ${visualGlobalContext || "（无）"}
 
                 <div style={{ background: 'rgba(255,255,255,0.02)', padding: '15px', borderRadius: '8px', border: `1px solid ${BORDER}` }}>
                   <div style={{ marginBottom: '10px' }}>
+                    <div style={{ fontSize: '12px', color: MUTED, marginBottom: '5px' }}>API 来源</div>
+                    <select
+                      value={config.route_sources?.[activeRouteTab] || "self"}
+                      onChange={e => updateRouteSource(activeRouteTab, e.target.value)}
+                      style={{ width: '100%', background: '#000', border: `1px solid ${BORDER}`, color: '#FFF', padding: '8px', borderRadius: '4px', outline: 'none' }}
+                    >
+                      <option value="self">使用本项配置</option>
+                      {Object.entries(config.routes).filter(([key]) => key !== activeRouteTab).map(([key, route]) => (
+                        <option key={key} value={`route:${key}`}>复用：{route.name}</option>
+                      ))}
+                    </select>
+                    {(config.route_sources?.[activeRouteTab] || "self") !== "self" && (
+                      <div style={{ fontSize: '11px', color: MUTED, marginTop: '6px' }}>
+                        当前请求会使用被复用阶段的 URL / Key / Model / 代理；本页字段保留为备用配置。
+                      </div>
+                    )}
+                  </div>
+                  <div style={{ marginBottom: '10px' }}>
                     <div style={{ fontSize: '12px', color: MUTED, marginBottom: '5px' }}>代理地址池 (Base URLs)</div>
-                    <textarea value={config.routes[activeRouteTab].url} onChange={e => setConfig(prev => ({...prev, routes: {...prev.routes, [activeRouteTab]: {...prev.routes[activeRouteTab], url: e.target.value}}}))} style={{ width: '100%', background: '#000', border: `1px solid ${BORDER}`, color: '#FFF', padding: '8px', borderRadius: '4px', resize: 'vertical', minHeight: '40px' }} placeholder="如: [https://api.openai.com/v1](https://api.openai.com/v1)" />
+                    <textarea value={config.routes[activeRouteTab]?.url || ""} onChange={e => updateRouteField(activeRouteTab, "url", e.target.value)} style={{ width: '100%', background: '#000', border: `1px solid ${BORDER}`, color: '#FFF', padding: '8px', borderRadius: '4px', resize: 'vertical', minHeight: '40px' }} placeholder="如: https://api.openai.com/v1" />
                   </div>
                   <div style={{ marginBottom: '10px' }}>
                     <div style={{ fontSize: '12px', color: MUTED, marginBottom: '5px' }}>API Key 池 (API Keys)</div>
-                    <textarea value={config.routes[activeRouteTab].key} onChange={e => setConfig(prev => ({...prev, routes: {...prev.routes, [activeRouteTab]: {...prev.routes[activeRouteTab], key: e.target.value}}}))} style={{ width: '100%', background: '#000', border: `1px solid ${BORDER}`, color: '#FFF', padding: '8px', borderRadius: '4px', resize: 'vertical', minHeight: '40px' }} placeholder="如: sk-..." />
+                    <textarea value={config.routes[activeRouteTab]?.key || ""} onChange={e => updateRouteField(activeRouteTab, "key", e.target.value)} style={{ width: '100%', background: '#000', border: `1px solid ${BORDER}`, color: '#FFF', padding: '8px', borderRadius: '4px', resize: 'vertical', minHeight: '40px' }} placeholder="如: sk-..." />
                   </div>
                   <div>
                     <div style={{ fontSize: '12px', color: MUTED, marginBottom: '5px' }}>模型池 (Models)</div>
-                    <textarea value={config.routes[activeRouteTab].model} onChange={e => setConfig(prev => ({...prev, routes: {...prev.routes, [activeRouteTab]: {...prev.routes[activeRouteTab], model: e.target.value}}}))} style={{ width: '100%', background: '#000', border: `1px solid ${BORDER}`, color: '#FFF', padding: '8px', borderRadius: '4px', resize: 'vertical', minHeight: '40px' }} placeholder="如: gpt-4o" />
+                    <textarea value={config.routes[activeRouteTab]?.model || ""} onChange={e => updateRouteField(activeRouteTab, "model", e.target.value)} style={{ width: '100%', background: '#000', border: `1px solid ${BORDER}`, color: '#FFF', padding: '8px', borderRadius: '4px', resize: 'vertical', minHeight: '40px' }} placeholder="如: gpt-4o" />
                   </div>
                   {activeRouteTab === "image" && (
                     <div style={{ marginTop: "12px", border: `1px solid rgba(74,222,128,0.24)`, background: "rgba(74,222,128,0.06)", borderRadius: "8px", padding: "10px", display: "flex", flexDirection: "column", gap: "8px" }}>
@@ -3853,18 +3993,29 @@ ${visualGlobalContext || "（无）"}
                     <label style={{ display: 'flex', alignItems: 'center', cursor: 'pointer', position: 'relative' }}>
                       <input
                         type="checkbox"
-                        checked={config.routes[activeRouteTab].is_thinking || false}
-                        onChange={e => setConfig(prev => ({
-                          ...prev,
-                          routes: {
-                            ...prev.routes,
-                            [activeRouteTab]: { ...prev.routes[activeRouteTab], is_thinking: e.target.checked }
-                          }
-                        }))}
+                        checked={config.routes[activeRouteTab]?.is_thinking || false}
+                        onChange={e => updateRouteField(activeRouteTab, "is_thinking", e.target.checked)}
                         style={{ width: '18px', height: '18px', cursor: 'pointer', accentColor: '#E8A020' }}
                       />
                     </label>
                     <span style={{ fontSize: '11px', color: MUTED }}>勾选后后台将附带 extra_body 触发 reasoning_content</span>
+                  </div>
+                  <div style={{ marginTop: '10px', background: 'rgba(255,255,255,0.03)', padding: '10px', borderRadius: '6px', border: `1px solid ${BORDER}` }}>
+                    <label style={{ display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer' }}>
+                      <input
+                        type="checkbox"
+                        checked={Boolean(config.routes[activeRouteTab]?.use_proxy)}
+                        onChange={e => updateRouteField(activeRouteTab, "use_proxy", e.target.checked)}
+                        style={{ width: '18px', height: '18px', cursor: 'pointer', accentColor: '#E8A020' }}
+                      />
+                      <span style={{ fontSize: '13px', color: '#E8A020', fontWeight: 'bold' }}>使用代理</span>
+                    </label>
+                    <input
+                      value={config.routes[activeRouteTab]?.proxy_url || ""}
+                      onChange={e => updateRouteField(activeRouteTab, "proxy_url", e.target.value)}
+                      style={{ width: '100%', marginTop: '8px', background: '#000', border: `1px solid ${BORDER}`, color: '#FFF', padding: '8px', borderRadius: '4px', boxSizing: 'border-box' }}
+                      placeholder="可选代理，例如 http://127.0.0.1:10808"
+                    />
                   </div>
                 </div>
               </div>
@@ -3898,10 +4049,35 @@ ${visualGlobalContext || "（无）"}
                     {REVIEW_ROUTES.find(r => r.id === activeReviewRouteTab)?.hint}
                   </div>
                   <div style={{ marginBottom: '10px' }}>
+                    <div style={{ fontSize: '12px', color: MUTED, marginBottom: '5px' }}>API 来源</div>
+                    <select
+                      value={config.review_route_sources?.[activeReviewRouteTab] || "self"}
+                      onChange={e => updateReviewRouteSource(activeReviewRouteTab, e.target.value)}
+                      style={{ width: '100%', background: '#000', border: `1px solid ${BORDER}`, color: '#FFF', padding: '8px', borderRadius: '4px', outline: 'none' }}
+                    >
+                      <option value="self">使用本项配置</option>
+                      <optgroup label="复用主阶段/工具路由">
+                        {Object.entries(config.routes).map(([key, route]) => (
+                          <option key={key} value={`route:${key}`}>复用：{route.name}</option>
+                        ))}
+                      </optgroup>
+                      <optgroup label="复用其它会审槽位">
+                        {REVIEW_ROUTES.filter(route => route.id !== activeReviewRouteTab).map(route => (
+                          <option key={route.id} value={`review:${route.id}`}>复用：{config.review_routes[route.id]?.name || route.label}</option>
+                        ))}
+                      </optgroup>
+                    </select>
+                    {(config.review_route_sources?.[activeReviewRouteTab] || "self") !== "self" && (
+                      <div style={{ fontSize: '11px', color: MUTED, marginTop: '6px' }}>
+                        当前会审槽位会使用被复用来源的 URL / Key / Model / 代理；本项字段保留备用。
+                      </div>
+                    )}
+                  </div>
+                  <div style={{ marginBottom: '10px' }}>
                     <div style={{ fontSize: '12px', color: MUTED, marginBottom: '5px' }}>API URL</div>
                     <textarea
                       value={config.review_routes[activeReviewRouteTab]?.url || ""}
-                      onChange={e => setConfig(prev => ({...prev, review_routes: {...prev.review_routes, [activeReviewRouteTab]: {...prev.review_routes[activeReviewRouteTab], url: e.target.value}}}))}
+                      onChange={e => updateReviewRouteField(activeReviewRouteTab, "url", e.target.value)}
                       style={{ width: '100%', background: '#000', border: `1px solid ${BORDER}`, color: '#FFF', padding: '8px', borderRadius: '4px', resize: 'vertical', minHeight: '36px' }}
                       placeholder="例如：https://api.openai.com/v1 或对应平台的 OpenAI-compatible 地址"
                     />
@@ -3910,7 +4086,7 @@ ${visualGlobalContext || "（无）"}
                     <div style={{ fontSize: '12px', color: MUTED, marginBottom: '5px' }}>API Key</div>
                     <textarea
                       value={config.review_routes[activeReviewRouteTab]?.key || ""}
-                      onChange={e => setConfig(prev => ({...prev, review_routes: {...prev.review_routes, [activeReviewRouteTab]: {...prev.review_routes[activeReviewRouteTab], key: e.target.value}}}))}
+                      onChange={e => updateReviewRouteField(activeReviewRouteTab, "key", e.target.value)}
                       style={{ width: '100%', background: '#000', border: `1px solid ${BORDER}`, color: '#FFF', padding: '8px', borderRadius: '4px', resize: 'vertical', minHeight: '36px' }}
                       placeholder="填这个评审模型所属平台的 API Key"
                     />
@@ -3919,9 +4095,26 @@ ${visualGlobalContext || "（无）"}
                     <div style={{ fontSize: '12px', color: MUTED, marginBottom: '5px' }}>Model</div>
                     <textarea
                       value={config.review_routes[activeReviewRouteTab]?.model || ""}
-                      onChange={e => setConfig(prev => ({...prev, review_routes: {...prev.review_routes, [activeReviewRouteTab]: {...prev.review_routes[activeReviewRouteTab], model: e.target.value}}}))}
+                      onChange={e => updateReviewRouteField(activeReviewRouteTab, "model", e.target.value)}
                       style={{ width: '100%', background: '#000', border: `1px solid ${BORDER}`, color: '#FFF', padding: '8px', borderRadius: '4px', resize: 'vertical', minHeight: '36px' }}
                       placeholder="例如：doubao-seed-2-0-pro-260215"
+                    />
+                  </div>
+                  <div style={{ marginTop: '10px', background: 'rgba(74,222,128,0.06)', padding: '10px', borderRadius: '6px', border: '1px solid rgba(74,222,128,0.24)' }}>
+                    <label style={{ display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer' }}>
+                      <input
+                        type="checkbox"
+                        checked={Boolean(config.review_routes[activeReviewRouteTab]?.use_proxy)}
+                        onChange={e => updateReviewRouteField(activeReviewRouteTab, "use_proxy", e.target.checked)}
+                        style={{ width: '18px', height: '18px', cursor: 'pointer', accentColor: '#4ade80' }}
+                      />
+                      <span style={{ fontSize: '13px', color: '#4ade80', fontWeight: 'bold' }}>使用代理</span>
+                    </label>
+                    <input
+                      value={config.review_routes[activeReviewRouteTab]?.proxy_url || ""}
+                      onChange={e => updateReviewRouteField(activeReviewRouteTab, "proxy_url", e.target.value)}
+                      style={{ width: '100%', marginTop: '8px', background: '#000', border: `1px solid ${BORDER}`, color: '#FFF', padding: '8px', borderRadius: '4px', boxSizing: 'border-box' }}
+                      placeholder="可选代理，例如 http://127.0.0.1:10808"
                     />
                   </div>
                 </div>
