@@ -1763,14 +1763,18 @@ export default function App() {
       const data = await res.json();
       if (!res.ok) throw new Error(data.detail || "打包失败");
       if (!data.prompt) throw new Error("后端没有返回 prompt");
-      const useFileMode = packDeliveryMode === "file" && data.cli_instruction;
+      const useFileMode = packDeliveryMode === "file";
+      if (useFileMode && !data.cli_instruction) {
+        throw new Error("后端没有返回 CLI 短指令，无法按 md短指令模式打包。");
+      }
       const copyText = useFileMode ? data.cli_instruction : data.prompt;
       await navigator.clipboard.writeText(copyText);
       const savedLine = useFileMode && data.job_path ? `\n\n任务文件：${data.job_path}` : "";
       const modeLine = useFileMode
         ? "剪贴板里是短指令：粘贴给 CLI，让它读取任务文件后执行。"
         : "剪贴板里是完整任务包：粘贴到高级模型执行。";
-      alert(`✅ ${successLabel} 已打包（${data.char_count || data.prompt.length} 字 ≈ ${data.token_estimate || Math.ceil(data.prompt.length / 2)} tokens）${savedLine}\n\n${modeLine}\n拿到结果后点击对应“导入结果”。`);
+      const copiedPreview = useFileMode ? `\n\n已复制到剪贴板的短指令：\n\n${data.cli_instruction}` : "";
+      alert(`✅ ${successLabel} 已打包（${data.char_count || data.prompt.length} 字 ≈ ${data.token_estimate || Math.ceil(data.prompt.length / 2)} tokens）${savedLine}\n\n${modeLine}${copiedPreview}\n\n拿到结果后点击对应“导入结果”。`);
     } catch (error) {
       alert(`打包失败：${error.message}`);
     }
@@ -1792,7 +1796,7 @@ export default function App() {
       if (!res.ok) throw new Error(data.detail || "保存 CLI 任务文件失败");
       if (!data.cli_instruction) throw new Error("后端没有返回 CLI 短指令");
       await navigator.clipboard.writeText(data.cli_instruction);
-      alert(`✅ ${successLabel} 已保存为任务文件（${data.char_count || prompt.length} 字 ≈ ${data.token_estimate || Math.ceil(prompt.length / 2)} tokens）\n\n任务文件：${data.job_path}\n\n剪贴板里是短指令：粘贴给 CLI，让它读取任务文件后执行。`);
+      alert(`✅ ${successLabel} 已保存为任务文件（${data.char_count || prompt.length} 字 ≈ ${data.token_estimate || Math.ceil(prompt.length / 2)} tokens）\n\n任务文件：${data.job_path}\n\n剪贴板里是短指令：粘贴给 CLI，让它读取任务文件后执行。\n\n已复制到剪贴板的短指令：\n\n${data.cli_instruction}`);
     } catch (error) {
       alert(`打包失败：${error.message}`);
     }

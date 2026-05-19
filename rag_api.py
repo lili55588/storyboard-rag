@@ -2548,7 +2548,7 @@ def _save_cli_job_prompt(prompt: str, run_id: str = "", job_kind: str = "cli_job
     cli_instruction = (
         f"请读取并执行这个任务文件：\n{abs_path}\n\n"
         "执行要求：先打开文件理解完整任务；不要复述文件内容；不要输出过程说明；"
-        "只输出文件要求的最终完整正文，方便我复制回前端导入。"
+        "只输出最终完整正文。"
     )
     return {
         "job_path": abs_path,
