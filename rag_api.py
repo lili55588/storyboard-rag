@@ -3552,6 +3552,8 @@ def _is_permanent_image_error(status_code: int, detail: str = "") -> bool:
         "endpoint not supported" in text
         or "unsupported endpoint" in text
         or ("convert_request_failed" in text and "endpoint" in text)
+        or "not supported model for image generation" in text
+        or "only imagen models are supported" in text
         or "model_not_found" in text
         or "model not found" in text
         or "no available channel for model" in text
@@ -3574,10 +3576,13 @@ def _format_image_error(status_code: int, detail: str, model: str, endpoint: str
         "model_not_found" in text
         or "model not found" in text
         or "no available channel for model" in text
+        or "not supported model for image generation" in text
+        or "only imagen models are supported" in text
     ):
         return (
             f"模型 {model} 当前通道不可用或未开通。"
-            "请检查模型名、分组权限，或切换到已验证可用的生图模型。"
+            "请检查模型名、分组权限，或切换到已验证可用的生图模型；"
+            "如果通道提示只支持 Imagen，请使用 imagen-4.0-generate-001 / imagen-4.0-fast-generate-001 / imagen-4.0-ultra-generate-001。"
             f"原始错误：{detail}"
         )
     return detail or f"图片接口返回 HTTP {status_code}"

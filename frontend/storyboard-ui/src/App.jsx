@@ -17,6 +17,24 @@ const IMAGE_MODEL_PRESETS = [
     note: "保留原有 GPT 生图流程，支持当前 reference_images 兼容重试。"
   },
   {
+    label: "Imagen 4",
+    model: "imagen-4.0-generate-001",
+    url: "https://yibuapi.com/v1",
+    note: "Google Imagen 图片模型。若通道提示 only imagen models are supported，优先选这个。"
+  },
+  {
+    label: "Imagen 4 Fast",
+    model: "imagen-4.0-fast-generate-001",
+    url: "https://yibuapi.com/v1",
+    note: "Imagen 4 快速版，适合批量场景图试跑。"
+  },
+  {
+    label: "Imagen 4 Ultra",
+    model: "imagen-4.0-ultra-generate-001",
+    url: "https://yibuapi.com/v1",
+    note: "Imagen 4 高质量版，适合最终场景图。"
+  },
+  {
     label: "FLUX 2 Pro",
     model: "flux-2-pro",
     url: "https://yibuapi.com/v1",
@@ -1653,6 +1671,12 @@ export default function App() {
     return resolved;
   };
 
+  const getImageGenerationRoute = () => (
+    normalizeRouteConfig(config.routes?.image, { name: "4. 图片生图 API（不跟随复用来源）" })
+  );
+
+  const hasImageGenerationRouteKey = () => Boolean(getImageGenerationRoute().key);
+
   const resolveReviewRoute = (slot, resolvedRoutes = getEffectiveRoutes(), stack = []) => {
     const reviewFallback = config.review_routes?.[slot] || { name: slot };
     const ownRoute = normalizeRouteConfig(config.review_routes?.[slot], reviewFallback);
@@ -2056,9 +2080,9 @@ export default function App() {
   };
 
   const generateAndBindAsset = async ({ assetId, category, prompt, description, frameId, referenceIds = [], assetMap }) => {
-    const imageRoute = getEffectiveRoutes().image || {};
+    const imageRoute = getImageGenerationRoute();
     if (!imageRoute.key) {
-      throw new Error("请先在系统设置的 [4. 场景图生图清单] 里配置图片 API Key。");
+      throw new Error("请先在系统设置的 [4. 场景图生图清单] 本项配置里填写图片 API Key / URL / Model。API 来源复用只影响阶段四文本清单，不用于真正生图。");
     }
     const currentRunId = runId || localStorage.getItem(PIPELINE_RUN_ID_KEY) || createPipelineRunId();
     setRunId(currentRunId);
@@ -2343,8 +2367,8 @@ export default function App() {
   const handleGenerateBoardImage = async (index = 0) => {
     const segment = boardPrompts.segments?.[index];
     if (!segment?.gpt) return;
-    if (!hasEffectiveRouteKey("image")) {
-      setBoardPromptError("请先在系统设置的 [4. 场景图生图清单] 中配置 GPTImage2/图片模型 API Key。");
+    if (!hasImageGenerationRouteKey()) {
+      setBoardPromptError("请先在系统设置的 [4. 场景图生图清单] 本项配置中填写图片 API Key / URL / Model。API 来源复用只影响阶段四文本清单，不用于真正生图。");
       return;
     }
     const missingRefs = [1, 2].filter(id => !imageAssets[String(id)]?.path);
@@ -2360,7 +2384,7 @@ export default function App() {
     setBoardPromptError("");
 
     try {
-      const imageRoute = getEffectiveRoutes().image || {};
+      const imageRoute = getImageGenerationRoute();
       const safeRange = (segment.range || `segment-${index + 1}`).replace(/[^0-9A-Za-z_\-\u4e00-\u9fa5]+/g, "_");
       const res = await fetch(`${API_BASE}/generate_image`, {
         method: "POST",
@@ -4353,7 +4377,9 @@ ${visualGlobalContext || "（无）"}
                     </select>
                     {(config.route_sources?.[activeRouteTab] || "self") !== "self" && (
                       <div style={{ fontSize: '11px', color: MUTED, marginTop: '6px' }}>
-                        当前请求会使用被复用阶段的 URL / Key / Model / 代理；本页字段保留为备用配置。
+                        {activeRouteTab === "image"
+                          ? "复用来源只影响“阶段四文本清单”的模型；自动补齐场景图/全案分镜图生图仍固定使用本页填写的图片 API 配置。"
+                          : "当前请求会使用被复用阶段的 URL / Key / Model / 代理；本页字段保留为备用配置。"}
                       </div>
                     )}
                   </div>
@@ -4404,7 +4430,7 @@ ${visualGlobalContext || "（无）"}
                         ))}
                       </div>
                       <div style={{ color: MUTED, fontSize: "11px", lineHeight: 1.6 }}>
-                        `flux-2-pro` 会先尝试携带参考图；如果通道返回 `endpoint not supported`，说明该中转不支持这个 FLUX 图片端点，请换渠道或切回 `gpt-image-2`。需要更强参考图一致性时，可试已开通的 Kontext 模型。
+                        生图不会跟随上方“API 来源”的复用设置；这里必须填写真实图片模型。若通道返回 `only imagen models are supported`，请选择 `imagen-4.0-generate-001`、Fast 或 Ultra；若通道不支持 FLUX 图片端点，请换渠道或切回 GPT Image/Imagen。
                       </div>
                     </div>
                   )}
