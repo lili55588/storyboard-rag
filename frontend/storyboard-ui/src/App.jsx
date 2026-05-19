@@ -1764,17 +1764,32 @@ export default function App() {
       if (!res.ok) throw new Error(data.detail || "打包失败");
       if (!data.prompt) throw new Error("后端没有返回 prompt");
       const useFileMode = packDeliveryMode === "file";
-      if (useFileMode && !data.cli_instruction) {
-        throw new Error("后端没有返回 CLI 短指令，无法按 md短指令模式打包。");
+      let fileJob = data;
+      if (useFileMode && !fileJob.cli_instruction) {
+        const fallbackRes = await fetch(`${API_BASE}/save_cli_job`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            prompt: data.prompt,
+            job_kind: path.replace(/^\/+/, "").replace(/_job$/, ""),
+            label: `${successLabel}任务包`,
+            run_id: body?.run_id || ensureCurrentRunId(),
+          }),
+        });
+        const fallbackData = await fallbackRes.json().catch(() => ({}));
+        if (!fallbackRes.ok) {
+          throw new Error(fallbackData.detail || "后端仍是旧版，没有 /save_cli_job；请重启后端后再打包。");
+        }
+        fileJob = {...data, ...fallbackData};
       }
-      const copyText = useFileMode ? data.cli_instruction : data.prompt;
+      const copyText = useFileMode ? fileJob.cli_instruction : data.prompt;
       await navigator.clipboard.writeText(copyText);
-      const savedLine = useFileMode && data.job_path ? `\n\n任务文件：${data.job_path}` : "";
+      const savedLine = useFileMode && fileJob.job_path ? `\n\n任务文件：${fileJob.job_path}` : "";
       const modeLine = useFileMode
         ? "剪贴板里是短指令：粘贴给 CLI，让它读取任务文件后执行。"
         : "剪贴板里是完整任务包：粘贴到高级模型执行。";
-      const copiedPreview = useFileMode ? `\n\n已复制到剪贴板的短指令：\n\n${data.cli_instruction}` : "";
-      alert(`✅ ${successLabel} 已打包（${data.char_count || data.prompt.length} 字 ≈ ${data.token_estimate || Math.ceil(data.prompt.length / 2)} tokens）${savedLine}\n\n${modeLine}${copiedPreview}\n\n拿到结果后点击对应“导入结果”。`);
+      const copiedPreview = useFileMode ? `\n\n已复制到剪贴板的短指令：\n\n${fileJob.cli_instruction}` : "";
+      alert(`✅ ${successLabel} 已打包（${fileJob.char_count || data.char_count || data.prompt.length} 字 ≈ ${fileJob.token_estimate || data.token_estimate || Math.ceil(data.prompt.length / 2)} tokens）${savedLine}\n\n${modeLine}${copiedPreview}\n\n拿到结果后点击对应“导入结果”。`);
     } catch (error) {
       alert(`打包失败：${error.message}`);
     }
