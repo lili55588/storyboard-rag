@@ -7,6 +7,7 @@ const STYLE_MODE_KEY = "micro_epic_style_mode";
 const DIRECTOR_PROFILE_KEY = "micro_epic_director_profile";
 const ART_PROFILE_KEY = "micro_epic_art_profile";
 const CINE_PROFILE_KEY = "micro_epic_cine_profile";
+const PACK_DELIVERY_MODE_KEY = "micro_epic_pack_delivery_mode";
 const API_BASE = "http://127.0.0.1:8001";
 const IMAGE_MODEL_PRESETS = [
   {
@@ -1224,6 +1225,7 @@ export default function App() {
   const [directorProfile, setDirectorProfile] = useState(() => localStorage.getItem(DIRECTOR_PROFILE_KEY) || "default");
   const [artProfile, setArtProfile] = useState(() => localStorage.getItem(ART_PROFILE_KEY) || "default");
   const [cineProfile, setCineProfile] = useState(() => localStorage.getItem(CINE_PROFILE_KEY) || "default");
+  const [packDeliveryMode, setPackDeliveryMode] = useState(() => localStorage.getItem(PACK_DELIVERY_MODE_KEY) || "file");
 
   const [config, setConfig] = useState({
     prompts: { ...DEFAULT_PROMPTS },
@@ -1471,6 +1473,10 @@ export default function App() {
   }, [cineProfile]);
 
   useEffect(() => {
+    localStorage.setItem(PACK_DELIVERY_MODE_KEY, packDeliveryMode);
+  }, [packDeliveryMode]);
+
+  useEffect(() => {
     if (outputs[stage] && outputRef.current) {
       outputRef.current.scrollIntoView({ behavior: "smooth", block: "start" });
     }
@@ -1649,10 +1655,11 @@ export default function App() {
       const data = await res.json();
       if (!res.ok) throw new Error(data.detail || "打包失败");
       if (!data.prompt) throw new Error("后端没有返回 prompt");
-      const copyText = data.cli_instruction || data.prompt;
+      const useFileMode = packDeliveryMode === "file" && data.cli_instruction;
+      const copyText = useFileMode ? data.cli_instruction : data.prompt;
       await navigator.clipboard.writeText(copyText);
-      const savedLine = data.job_path ? `\n\n任务文件：${data.job_path}` : "";
-      const modeLine = data.cli_instruction
+      const savedLine = useFileMode && data.job_path ? `\n\n任务文件：${data.job_path}` : "";
+      const modeLine = useFileMode
         ? "剪贴板里是短指令：粘贴给 CLI，让它读取任务文件后执行。"
         : "剪贴板里是完整任务包：粘贴到高级模型执行。";
       alert(`✅ ${successLabel} 已打包（${data.char_count || data.prompt.length} 字 ≈ ${data.token_estimate || Math.ceil(data.prompt.length / 2)} tokens）${savedLine}\n\n${modeLine}\n拿到结果后点击对应“导入结果”。`);
@@ -2757,6 +2764,11 @@ ${revisionInput}`;
     if (!packed) {
       return alert("需要先有当前阶段输出，并完成一次会审，才能打包会审重写任务。");
     }
+    if (packDeliveryMode === "clipboard") {
+      await navigator.clipboard.writeText(packed);
+      alert(`✅ 会审重写任务包已复制完整 prompt（${packed.length} 字 ≈ ${Math.ceil(packed.length / 2)} tokens）\n\n剪贴板里是完整任务包：粘贴到高级模型执行。`);
+      return;
+    }
     const stageId = STAGES[stage].id;
     await savePromptAsCliJob({
       prompt: packed,
@@ -3362,6 +3374,35 @@ ${visualGlobalContext || "（无）"}
       : "未知时间";
     return `${item.run_id} · 创建 ${created}${stageTags ? ` · ${stageTags}` : ""}`;
   };
+  const renderPackDeliveryToggle = (accentColor) => (
+    <div style={{display: 'flex', alignItems: 'center', gap: '4px', background: 'rgba(0,0,0,0.24)', border: '1px solid ' + BORDER, borderRadius: '6px', padding: '3px'}}>
+      {[
+        { id: "file", label: "md短指令" },
+        { id: "clipboard", label: "复制全文" },
+      ].map(option => {
+        const active = packDeliveryMode === option.id;
+        return (
+          <button
+            key={option.id}
+            type="button"
+            onClick={() => setPackDeliveryMode(option.id)}
+            style={{
+              border: '0',
+              borderRadius: '4px',
+              padding: '4px 8px',
+              cursor: 'pointer',
+              fontSize: '11px',
+              color: active ? '#020617' : TEXT,
+              background: active ? accentColor : 'transparent',
+              fontWeight: active ? 800 : 600,
+            }}
+          >
+            {option.label}
+          </button>
+        );
+      })}
+    </div>
+  );
 
   return (
     <div style={styles.root}>
@@ -3694,7 +3735,10 @@ ${visualGlobalContext || "（无）"}
               display: 'grid',
               gap: '8px'
             }}>
-              <div style={{fontSize: '12px', color: '#67e8f9', fontWeight: 'bold'}}>高级模型任务包 · 阶段二</div>
+              <div style={{display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px', flexWrap: 'wrap'}}>
+                <div style={{fontSize: '12px', color: '#67e8f9', fontWeight: 'bold'}}>高级模型任务包 · 阶段二</div>
+                {renderPackDeliveryToggle('#67e8f9')}
+              </div>
               <div style={{display: 'flex', gap: '8px', flexWrap: 'wrap'}}>
                 <button onClick={handlePackVisual} style={{...styles.btnGhost, color: '#67e8f9', borderColor: 'rgba(34,211,238,0.35)'}}>📋 打包阶段二</button>
                 <button onClick={() => importStageFromClipboard('visual')} style={{...styles.btnGhost, color: '#67e8f9', borderColor: 'rgba(34,211,238,0.35)'}}>📥 导入视觉结果</button>
@@ -3716,7 +3760,10 @@ ${visualGlobalContext || "（无）"}
               display: 'grid',
               gap: '8px'
             }}>
-              <div style={{fontSize: '12px', color: '#d8b4fe', fontWeight: 'bold'}}>高级模型任务包 · 阶段三</div>
+              <div style={{display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px', flexWrap: 'wrap'}}>
+                <div style={{fontSize: '12px', color: '#d8b4fe', fontWeight: 'bold'}}>高级模型任务包 · 阶段三</div>
+                {renderPackDeliveryToggle('#d8b4fe')}
+              </div>
               <div style={{display: 'flex', gap: '8px', flexWrap: 'wrap'}}>
                 <button onClick={handlePackShot} style={{...styles.btnGhost, color: '#d8b4fe', borderColor: 'rgba(168,85,247,0.35)'}}>📋 打包阶段三</button>
                 <button onClick={() => importStageFromClipboard('shot')} style={{...styles.btnGhost, color: '#d8b4fe', borderColor: 'rgba(168,85,247,0.35)'}}>📥 导入分镜结果</button>
