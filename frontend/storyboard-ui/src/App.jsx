@@ -140,36 +140,144 @@ const _extractShotBindMap = (text = "") => {
 
 const extractSceneAssetPrompts = (text = "") => {
   const source = text || "";
-  const sceneCards = source.split(/\n(?=###\s+场景卡)/g);
   const assets = {};
+
+  const buildSceneAsset = ({ id, sceneId = "", description = "", structuredPrompt = "" }) => {
+    const imageId = Number(id);
+    if (!(imageId >= 10 && imageId <= 49)) return;
+    const cleanDescription = (description || `${sceneId || `@图片${imageId}`} 场景参考图`)
+      .replace(/\*\*/g, "")
+      .replace(/^[-\s:：|]+|[-\s:：|]+$/g, "")
+      .trim();
+    const cleanPrompt = (structuredPrompt || "").replace(/\*\*/g, "").trim();
+    const hasStructuredPrompt = Boolean(cleanPrompt);
+    const candidate = {
+      id: imageId,
+      sceneId: sceneId || `S${imageId - 9}`,
+      description: cleanDescription || `${sceneId || `@图片${imageId}`} 场景参考图`,
+      hasStructuredPrompt,
+      prompt: normalizeSceneAssetPrompt(
+        cleanPrompt || `${cleanDescription || `@图片${imageId} 场景参考图`}，3D半写实梦幻动画电影场景风格，电影级CG质感，16:9`,
+        cleanDescription
+      ),
+    };
+    const existing = assets[imageId];
+    if (
+      !existing ||
+      (candidate.hasStructuredPrompt && !existing.hasStructuredPrompt) ||
+      (candidate.hasStructuredPrompt === existing.hasStructuredPrompt && candidate.prompt.length > existing.prompt.length)
+    ) {
+      assets[imageId] = candidate;
+    }
+  };
+
+  const extractPromptField = (section = "") => {
+    const fencedMatch = section.match(/(?:\*\*)?(?:(?:即梦中文|MJ英文|English)\s*)?场景(?:生图|图)?提示词(?:\*\*)?\s*[:：]?\s*(?:\r?\n)?```(?:[a-zA-Z]*)?\s*([\s\S]*?)```/i);
+    if (fencedMatch?.[1]) return fencedMatch[1].trim();
+
+    const fieldPatterns = [
+      /(?:\*\*)?即梦中文场景生图提示词(?:\*\*)?\s*[:：]\s*([\s\S]*?)(?=\r?\n\s*(?:\*\*|###|##|\| @图片|$))/,
+      /(?:\*\*)?MJ英文场景生图提示词(?:\*\*)?\s*[:：]\s*([\s\S]*?)(?=\r?\n\s*(?:\*\*|###|##|\| @图片|$))/i,
+      /(?:\*\*)?English Scene Generation Prompt(?:\*\*)?\s*[:：]\s*([\s\S]*?)(?=\r?\n\s*(?:\*\*|###|##|\| @图片|$))/i,
+      /(?:\*\*)?场景生图提示词(?:\*\*)?\s*[:：]\s*([\s\S]*?)(?=\r?\n\s*(?:\*\*|###|##|\| @图片|$))/,
+      /(?:\*\*)?最终生图提示词(?:\*\*)?\s*[:：]\s*([\s\S]*?)(?=\r?\n\s*(?:\*\*|###|##|\| @图片|$))/,
+    ];
+    for (const pattern of fieldPatterns) {
+      const match = section.match(pattern);
+      if (match?.[1]?.trim()) return match[1].trim();
+    }
+
+    const lockMatch = section.match(/(?:\*\*)?完整场景锁定描述[^：:]*[:：](?:\*\*)?\s*(?:\r?\n)?([\s\S]*?)(?=\r?\n\*\*|\r?\n###|\r?\n---|$)/);
+    return (lockMatch?.[1] || "").trim();
+  };
+
+  const extractSceneDescriptionFromHeader = (header = "", sceneId = "") => (
+    header
+      .replace(/^#+\s*/, "")
+      .replace(/^场景卡\s*[·:：-]?\s*/, "")
+      .replace(new RegExp(`\\|\\s*${sceneId}\\s*\\|`), "")
+      .replace(/^@图片\s*\d+\s*[·:：-]?\s*/, "")
+      .trim()
+  );
+
+  const sceneHeaderRegex = /^###\s+场景卡\s*·\s*\|\s*(S\d+)\s*\|[^\r\n]*/gm;
+  const sceneMatches = [...source.matchAll(sceneHeaderRegex)];
+  const sceneCards = sceneMatches.length
+    ? sceneMatches.map((match, index) => {
+        const start = match.index ?? 0;
+        const end = sceneMatches[index + 1]?.index ?? source.length;
+        return source.slice(start, end);
+      })
+    : source.split(/\n(?=###\s+场景卡)/g);
+
   sceneCards.forEach(section => {
     const sceneMatch = section.match(/###\s+场景卡\s*·\s*\|\s*(S\d+)\s*\|[^\r\n]*/);
-    const promptMatch = section.match(/(?:\*\*)?(?:(?:即梦中文|MJ英文)\s*)?场景生图提示词(?:\*\*)?\s*[:：]?\s*(?:\r?\n)?```(?:[a-zA-Z]*)?\s*([\s\S]*?)```/);
-    const lockMatch = section.match(/(?:\*\*)?完整场景锁定描述[^：:]*[:：](?:\*\*)?\s*(?:\r?\n)?([\s\S]*?)(?=\r?\n\*\*|\r?\n###|\r?\n---|$)/);
-    const structuredPrompt = (promptMatch?.[1] || lockMatch?.[1] || "").trim();
+    const sceneId = sceneMatch?.[1] || "";
+    const sceneDescription = extractSceneDescriptionFromHeader(sceneMatch?.[0] || "", sceneId);
+    const structuredPrompt = extractPromptField(section);
+
+    const refLine = section.match(/场景参考图[^\r\n]*[:：]\s*([^\r\n]+)/)?.[1] || "";
+    [...refLine.matchAll(/@图片\s*(\d+)/g)].forEach(match => {
+      const id = Number(match[1]);
+      if (id >= 10 && id <= 49) {
+        const tail = refLine.slice((match.index || 0) + match[0].length).split(/[;；，,、]/)[0].trim();
+        buildSceneAsset({ id, sceneId, description: tail || sceneDescription || `@图片${id} 场景参考图`, structuredPrompt });
+      }
+    });
+
     const idLines = [...section.matchAll(/@图片\s*(\d+)[^：:\r\n]*[：:]\s*([^\r\n]+)/g)];
     idLines.forEach(match => {
       const id = Number(match[1]);
       if (id >= 10 && id <= 49) {
-        const description = (match[2] || "").replace(/\*\*/g, "").trim();
-        const hasStructuredPrompt = Boolean(structuredPrompt);
-        const candidate = {
-          id,
-          sceneId: sceneMatch?.[1] || (id >= 10 && id <= 49 ? `S${id - 9}` : ""),
-          description,
-          hasStructuredPrompt,
-          prompt: normalizeSceneAssetPrompt(
-            structuredPrompt || `${description}，3D半写实梦幻动画电影场景风格，电影级CG质感，16:9`,
-            description
-          ),
-        };
-        if (!assets[id] || (hasStructuredPrompt && !assets[id].hasStructuredPrompt)) {
-          assets[id] = candidate;
+        buildSceneAsset({ id, sceneId, description: match[2] || sceneDescription, structuredPrompt });
+      }
+    });
+
+    if (!refLine && sceneId) {
+      [...section.matchAll(/@图片\s*(\d+)/g)].forEach(match => {
+        const id = Number(match[1]);
+        if (id >= 10 && id <= 49) {
+          buildSceneAsset({ id, sceneId, description: sceneDescription || `@图片${id} 场景参考图`, structuredPrompt });
         }
+      });
+    }
+  });
+
+  [...source.matchAll(/^\|\s*@图片\s*(\d+)\s*\|\s*场景图\s*\|\s*([^|\r\n]+?)\s*\|\s*(S\d+)\s*\|[^\r\n]*$/gm)].forEach(match => {
+    buildSceneAsset({ id: match[1], sceneId: match[3], description: match[2] });
+  });
+
+  const imageSections = [...source.matchAll(/^###\s+@图片\s*(\d+)\s*·\s*\|\s*(S\d+)\s*\|[^\r\n]*/gm)];
+  imageSections.forEach((match, index) => {
+    const start = match.index ?? 0;
+    const end = imageSections[index + 1]?.index ?? source.length;
+    const section = source.slice(start, end);
+    buildSceneAsset({
+      id: match[1],
+      sceneId: match[2],
+      description: extractSceneDescriptionFromHeader(match[0] || "", match[2]),
+      structuredPrompt: extractPromptField(section),
+    });
+  });
+
+  return assets;
+};
+
+const mergeSceneAssetPrompts = (...texts) => {
+  const merged = {};
+  texts.filter(Boolean).forEach(text => {
+    Object.values(extractSceneAssetPrompts(text)).forEach(asset => {
+      const existing = merged[asset.id];
+      if (
+        !existing ||
+        (asset.hasStructuredPrompt && !existing.hasStructuredPrompt) ||
+        (asset.hasStructuredPrompt === existing.hasStructuredPrompt && asset.prompt.length > existing.prompt.length)
+      ) {
+        merged[asset.id] = asset;
       }
     });
   });
-  return assets;
+  return merged;
 };
 
 const extractSceneChunks = (visualText = "") => {
@@ -2009,10 +2117,10 @@ export default function App() {
 
     try {
       let assetMap = {...imageAssets};
-      const sceneAssets = extractSceneAssetPrompts(outputs[1] || outputs[3] || "");
+      const sceneAssets = mergeSceneAssetPrompts(outputs[1], inputs[2], outputs[3], inputs[3]);
       const sceneIds = Object.keys(sceneAssets).map(Number).filter(Boolean).sort((a, b) => a - b);
       if (!sceneIds.length) {
-        throw new Error("没有识别到 @图片10-49 场景图。请先生成第二阶段固定要素库包，并确保每个场景卡包含场景参考图和场景生图提示词。");
+        throw new Error("没有从阶段二输出、阶段三输入或阶段四清单里识别到 @图片10-49 场景图。请确认固定要素库包已导入阶段二，或已粘贴到阶段三输入框。");
       }
 
       const missingSceneIds = sceneIds.filter(id => id >= 10 && id <= 49 && !assetMap[String(id)]?.path);
@@ -3356,7 +3464,7 @@ ${visualGlobalContext || "（无）"}
 
   const cur = STAGES[stage];
   const reviewLabels = getReviewLabels();
-  const sceneAssetMap = stage === 3 ? extractSceneAssetPrompts(outputs[1] || outputs[3] || "") : {};
+  const sceneAssetMap = stage === 3 ? mergeSceneAssetPrompts(outputs[1], inputs[2], outputs[3], inputs[3]) : {};
   const sceneAssetList = Object.values(sceneAssetMap).sort((a, b) => a.id - b.id);
   const neededAssetIds = stage === 3
     ? sceneAssetList.map(scene => scene.id)
@@ -4054,7 +4162,7 @@ ${visualGlobalContext || "（无）"}
                   )}
                   {assetAutoProgress && <div style={styles.assetProgress}>{assetAutoProgress}</div>}
                   {sceneAssetList.length === 0 ? (
-                    <div style={styles.collapsedBox}>还没有识别到 @图片10-49 场景图。请先生成第二阶段固定要素库包，确保每个场景卡包含场景参考图和场景生图提示词。</div>
+                    <div style={styles.collapsedBox}>还没有识别到 @图片10-49 场景图。请确认固定要素库包已导入阶段二，或已粘贴到阶段三输入框；现在支持识别“场景参考图：@图片10”和“@图片编号总对应表”。</div>
                   ) : (
                     <div style={styles.imageFrameGrid}>
                       {sceneAssetList.map(scene => {
