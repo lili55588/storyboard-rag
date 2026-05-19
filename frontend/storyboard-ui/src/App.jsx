@@ -419,8 +419,11 @@ const compactHeadForBoardPrompt = (text = "", limit = 1200) => {
 };
 
 const extractBulletBlock = (section = "", label = "") => {
+  const bullet = String.raw`\r?\n\s*[-*]\s*(?:\*\*)?`;
+  const fieldPrefix = String.raw`(?:^|\r?\n)\s*[-*]\s*(?:\*\*)?`;
+  const fieldSuffix = String.raw`(?:\*\*)?\s*[:：]`;
   const pattern = new RegExp(
-    `-\\s*${label}\\s*[:：]\\s*(?:\\r?\\n)?([\\s\\S]*?)(?=\\r?\\n-\\s*[^\\r\\n：:]{1,32}\\s*[:：]|\\r?\\n###\\s+生成单元|\\r?\\n\\*\\*本场提交顺序表|\\r?\\n---|$)`
+    `${fieldPrefix}${label}${fieldSuffix}\\s*(?:\\r?\\n)?([\\s\\S]*?)(?=${bullet}[^\\r\\n：:]{1,32}${fieldSuffix}|\\r?\\n###\\s+生成单元|\\r?\\n\\*\\*本场提交顺序表|\\r?\\n---|$)`
   );
   return (section.match(pattern)?.[1] || "").trim();
 };
