@@ -1649,8 +1649,35 @@ export default function App() {
       const data = await res.json();
       if (!res.ok) throw new Error(data.detail || "打包失败");
       if (!data.prompt) throw new Error("后端没有返回 prompt");
-      await navigator.clipboard.writeText(data.prompt);
-      alert(`✅ ${successLabel} 已复制到剪贴板（${data.char_count || data.prompt.length} 字 ≈ ${data.token_estimate || Math.ceil(data.prompt.length / 2)} tokens）\n\n粘贴到 Kiro/Codex/Gemini/Claude 等高级模型执行；拿到结果后点击对应“导入结果”。`);
+      const copyText = data.cli_instruction || data.prompt;
+      await navigator.clipboard.writeText(copyText);
+      const savedLine = data.job_path ? `\n\n任务文件：${data.job_path}` : "";
+      const modeLine = data.cli_instruction
+        ? "剪贴板里是短指令：粘贴给 CLI，让它读取任务文件后执行。"
+        : "剪贴板里是完整任务包：粘贴到高级模型执行。";
+      alert(`✅ ${successLabel} 已打包（${data.char_count || data.prompt.length} 字 ≈ ${data.token_estimate || Math.ceil(data.prompt.length / 2)} tokens）${savedLine}\n\n${modeLine}\n拿到结果后点击对应“导入结果”。`);
+    } catch (error) {
+      alert(`打包失败：${error.message}`);
+    }
+  };
+
+  const savePromptAsCliJob = async ({ prompt, jobKind, label, successLabel }) => {
+    try {
+      const res = await fetch(`${API_BASE}/save_cli_job`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          prompt,
+          job_kind: jobKind,
+          label,
+          run_id: ensureCurrentRunId(),
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.detail || "保存 CLI 任务文件失败");
+      if (!data.cli_instruction) throw new Error("后端没有返回 CLI 短指令");
+      await navigator.clipboard.writeText(data.cli_instruction);
+      alert(`✅ ${successLabel} 已保存为任务文件（${data.char_count || prompt.length} 字 ≈ ${data.token_estimate || Math.ceil(prompt.length / 2)} tokens）\n\n任务文件：${data.job_path}\n\n剪贴板里是短指令：粘贴给 CLI，让它读取任务文件后执行。`);
     } catch (error) {
       alert(`打包失败：${error.message}`);
     }
@@ -2730,8 +2757,13 @@ ${revisionInput}`;
     if (!packed) {
       return alert("需要先有当前阶段输出，并完成一次会审，才能打包会审重写任务。");
     }
-    await navigator.clipboard.writeText(packed);
-    alert(`✅ 会审重写任务包已复制到剪贴板（${packed.length} 字 ≈ ${Math.ceil(packed.length / 2)} tokens）\n\n粘贴到 CLI 执行；拿到完整新版后，点击本阶段的“导入结果”按钮覆盖。`);
+    const stageId = STAGES[stage].id;
+    await savePromptAsCliJob({
+      prompt: packed,
+      jobKind: `review_rewrite_${stageId}`,
+      label: `${STAGES[stage].label}会审重写任务包`,
+      successLabel: "会审重写任务包",
+    });
   };
 
   const handleGenerate = async () => {

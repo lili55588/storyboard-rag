@@ -852,6 +852,14 @@ class PackCineCutJobRequest(BaseModel):
     run_id: str = ""
 
 
+class SaveCliJobRequest(BaseModel):
+    """保存前端组装的 CLI 任务包，并返回一条短指令。"""
+    prompt: str
+    run_id: str = ""
+    job_kind: str = "cli_job"
+    label: str = "CLI任务包"
+
+
 class DirectorCutRequest(BaseModel):
     """Request model for the Stage 1 director's cut (second draft) endpoint."""
     script: str
@@ -2511,6 +2519,52 @@ def get_prompts():
     return {}
 
 
+def _save_cli_job_prompt(prompt: str, run_id: str = "", job_kind: str = "cli_job", label: str = "CLI任务包") -> dict:
+    clean_prompt = (prompt or "").strip()
+    if not clean_prompt:
+        raise HTTPException(status_code=400, detail="CLI 任务包内容为空，无法保存。")
+
+    folder_path = get_or_create_run_folder(run_id)
+    jobs_dir = _safe_join_under(folder_path, "cli_jobs")
+    os.makedirs(jobs_dir, exist_ok=True)
+
+    stamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    safe_kind = _safe_name_segment(job_kind, "cli_job", 64)
+    filename = f"{stamp}_{safe_kind}.md"
+    job_path = _safe_join_under(jobs_dir, filename)
+
+    header = (
+        f"# {label}\n\n"
+        f"- 创建时间：{datetime.now().isoformat(timespec='seconds')}\n"
+        f"- run_id：{_safe_run_id(run_id) or os.path.basename(folder_path)}\n"
+        f"- 用法：把前端复制的短指令粘贴给 CLI，让 CLI 读取本文件后执行。\n\n"
+        "---\n\n"
+    )
+    with open(job_path, "w", encoding="utf-8", newline="\n") as f:
+        f.write(header + clean_prompt + "\n")
+
+    abs_path = os.path.abspath(job_path)
+    rel_path = os.path.relpath(abs_path, BASE_DIR).replace(os.sep, "/")
+    cli_instruction = (
+        f"请读取并执行这个任务文件：\n{abs_path}\n\n"
+        "执行要求：先打开文件理解完整任务；不要复述文件内容；不要输出过程说明；"
+        "只输出文件要求的最终完整正文，方便我复制回前端导入。"
+    )
+    return {
+        "job_path": abs_path,
+        "job_rel_path": rel_path,
+        "cli_instruction": cli_instruction,
+        "char_count": len(clean_prompt),
+        "token_estimate": len(clean_prompt) // 2,
+    }
+
+
+@app.post("/save_cli_job")
+def save_cli_job(req: SaveCliJobRequest):
+    job = _save_cli_job_prompt(req.prompt, req.run_id, req.job_kind, req.label)
+    return {"status": "success", **job}
+
+
 # ---------- 5. 四段式生产引擎 ----------
 @app.post("/generate")
 async def generate_endpoint(req: GenerateRequest):
@@ -3075,7 +3129,8 @@ async def pack_visual_job(req: PackVisualJobRequest):
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 请直接输出完整的固定要素库包（# [项目名] · 固定要素库包），不要解释创作过程，不要写前言后语。"""
 
-    return {"prompt": packed, "char_count": len(packed), "token_estimate": len(packed) // 2}
+    job = _save_cli_job_prompt(packed, req.run_id, "stage2_visual", "阶段二视觉开发任务包")
+    return {"prompt": packed, **job}
 
 
 @app.post("/pack_shot_job")
@@ -3135,7 +3190,8 @@ async def pack_shot_job(req: PackShotJobRequest):
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 请直接输出完整的即梦分镜提示词包（# [项目名] · 即梦分镜提示词包），不要解释创作过程，不要写前言后语。"""
 
-    return {"prompt": packed, "char_count": len(packed), "token_estimate": len(packed) // 2}
+    job = _save_cli_job_prompt(packed, req.run_id, "stage3_shot", "阶段三分镜提示词任务包")
+    return {"prompt": packed, **job}
 
 
 @app.post("/pack_art_cut_job")
@@ -3194,7 +3250,9 @@ async def pack_art_cut_job(req: PackArtCutJobRequest):
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 请先输出一段简短的"美术剪辑笔记"（200-400字），再输出完整的美术剪辑版固定要素库包。不要解释 prompt 本身。"""
 
-    return {"prompt": packed, "char_count": len(packed), "token_estimate": len(packed) // 2}
+    job_kind = f"stage2_art_cut_{(req.force_scene or 'auto').strip().lower()}"
+    job = _save_cli_job_prompt(packed, req.run_id, job_kind, "阶段二美术二稿任务包")
+    return {"prompt": packed, **job}
 
 
 @app.post("/pack_cine_cut_job")
@@ -3267,7 +3325,9 @@ async def pack_cine_cut_job(req: PackCineCutJobRequest):
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 请先输出"## 摄影剪辑笔记"（200-400字），再输出完整的摄影剪辑版分镜提示词包。不要解释 prompt 本身。"""
 
-    return {"prompt": packed, "char_count": len(packed), "token_estimate": len(packed) // 2}
+    job_kind = f"stage3_cine_cut_{(req.force_unit or 'auto').strip().lower()}"
+    job = _save_cli_job_prompt(packed, req.run_id, job_kind, "阶段三摄影二稿任务包")
+    return {"prompt": packed, **job}
 
 
 def _resolve_run_folder_for_read(run_id: str = "") -> tuple[str, str] | tuple[None, None]:
