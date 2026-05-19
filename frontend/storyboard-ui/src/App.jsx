@@ -68,6 +68,35 @@ const stripCompletionEndMarker = (text = "") => (
   text.replace(/\n+\s*end\s*$/i, "").trim()
 );
 
+const extractFormalShotBody = (text = "") => {
+  const source = stripCompletionEndMarker(text || "")
+    .replace(/```markdown\s*/g, "")
+    .replace(/```\s*/g, "")
+    .trim();
+  if (!source) return "";
+
+  const sceneHeaders = [...source.matchAll(/^##\s*\|\s*S\d+\s*\|[^\r\n]*$/gm)];
+  if (sceneHeaders.length) {
+    const firstScene = sceneHeaders.find(match => /\|\s*S1\s*\|/.test(match[0])) || sceneHeaders[0];
+    return source.slice(firstScene.index ?? 0).trim();
+  }
+
+  const firstS1Unit = source.match(/^###\s+生成单元\s+S1-U1\b[^\r\n]*$/m);
+  if (firstS1Unit) {
+    return source.slice(firstS1Unit.index ?? 0).trim();
+  }
+
+  const unitMatches = [...source.matchAll(/^###\s+生成单元\s+(S\d+-U\d+)[^\r\n]*$/gm)];
+  const firstExecutableUnit = unitMatches.find((match, index) => {
+    const start = match.index ?? 0;
+    const end = unitMatches[index + 1]?.index ?? source.length;
+    const section = source.slice(start, end);
+    return /-\s*(?:成片时长|生成时长)\s*[:：]/.test(section)
+      && /-\s*(?:完整提示词|镜头类型\/运镜|动作&情绪)\s*[:：]/.test(section);
+  });
+  return firstExecutableUnit ? source.slice(firstExecutableUnit.index ?? 0).trim() : source;
+};
+
 const estimateTokenCount = (text = "") => {
   const clean = (text || "").replace(/\u200b/g, "");
   const cjk = (clean.match(/[\u3400-\u9fff\uf900-\ufaff]/g) || []).length;
@@ -144,7 +173,7 @@ const normalizeSceneAssetPrompt = (prompt = "", description = "") => {
 
 const _extractShotBindMap = (text = "") => {
   const map = {};
-  const source = text || "";
+  const source = extractFormalShotBody(text || "");
   const sections = [...source.matchAll(/^###\s+生成单元\s+([A-Z]\d+-U\d+)[^\r\n]*\r?$/gm)];
   sections.forEach((match, index) => {
     const start = match.index;
@@ -676,7 +705,7 @@ ${styleText || "3D半写实梦幻动物动画，电影级CG质感，柔和自然
 };
 
 const parseShotUnitsForBoard = (shotText = "", visualText = "") => {
-  const source = stripCompletionEndMarker(shotText || "");
+  const source = extractFormalShotBody(shotText || "");
   const sceneChunks = extractSceneChunks(visualText || "");
   const sceneInfoMap = Object.fromEntries(sceneChunks.map(chunk => [chunk.sceneId, chunk]));
   const sceneHeaders = [...source.matchAll(/^##\s*\|\s*(S\d+)\s*\|\s*([^\r\n]*)/gm)].map(match => ({
