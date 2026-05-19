@@ -3,6 +3,10 @@ import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 
 const PIPELINE_RUN_ID_KEY = "storyboard_pipeline_run_id";
+const STYLE_MODE_KEY = "micro_epic_style_mode";
+const DIRECTOR_PROFILE_KEY = "micro_epic_director_profile";
+const ART_PROFILE_KEY = "micro_epic_art_profile";
+const CINE_PROFILE_KEY = "micro_epic_cine_profile";
 const API_BASE = "http://127.0.0.1:8001";
 const IMAGE_MODEL_PRESETS = [
   {
@@ -784,6 +788,34 @@ const BOARD_STYLE_HINTS = {
   none: "电影级短片视觉质感，风格完全服从剧情设定，角色一致，场景连贯，镜头顺序清楚。"
 };
 
+const DIRECTOR_PROFILE_OPTIONS = [
+  { value: "default", label: "默认判断" },
+  { value: "miyazaki", label: "宫崎骏式" },
+  { value: "pixar", label: "皮克斯式" },
+  { value: "wes_anderson", label: "韦斯·安德森式" },
+  { value: "a24_indie", label: "A24 独立片式" },
+  { value: "ghibli_yonebayashi", label: "吉卜力·米林宏昌式" },
+];
+
+const ART_PROFILE_OPTIONS = [
+  { value: "default", label: "默认判断" },
+  { value: "miyazaki_art", label: "宫崎骏组美术" },
+  { value: "pixar_art", label: "皮克斯组美术" },
+  { value: "wes_anderson_art", label: "韦斯·安德森组美术" },
+  { value: "a24_indie_art", label: "A24 独立片美术" },
+  { value: "ghibli_yonebayashi_art", label: "吉卜力·米林宏昌美术" },
+];
+
+const CINE_PROFILE_OPTIONS = [
+  { value: "default", label: "默认判断" },
+  { value: "still_observer", label: "静止观察者" },
+  { value: "deakins_minimal", label: "迪金斯式极简精确" },
+  { value: "lubezki_natural", label: "卢贝兹基式自然光" },
+  { value: "wong_kar_wai", label: "王家卫式情绪手持" },
+  { value: "miyazaki_yoneda", label: "宫崎骏组治愈跟随" },
+  { value: "kar_wai_anderson_hybrid", label: "韦斯·安德森式对称固定" },
+];
+
 const DEFAULT_PROMPTS = {
   /* ========== 阶段一：剧本（导演模式创作） ========== */
   script: `你是这部片子的编剧兼导演，按真实短剧/动画项目的剧本制式工作。你的任务不是写设定说明，也不是写 AI 视频提示词，而是交付一份可阅读、可拍摄、可继续交给美术和分镜部门拆解的正式剧本。
@@ -1188,7 +1220,10 @@ export default function App() {
   const [showSettings, setShowSettings] = useState(false);
   const [showRadar, setShowRadar] = useState(false);
   const [radarMode, setRadarMode] = useState("core");
-  const [styleMode, setStyleMode] = useState('cute_3d'); // 默认为3D半写实梦幻动物动画
+  const [styleMode, setStyleMode] = useState(() => localStorage.getItem(STYLE_MODE_KEY) || 'cute_3d'); // 默认为3D半写实梦幻动物动画
+  const [directorProfile, setDirectorProfile] = useState(() => localStorage.getItem(DIRECTOR_PROFILE_KEY) || "default");
+  const [artProfile, setArtProfile] = useState(() => localStorage.getItem(ART_PROFILE_KEY) || "default");
+  const [cineProfile, setCineProfile] = useState(() => localStorage.getItem(CINE_PROFILE_KEY) || "default");
 
   const [config, setConfig] = useState({
     prompts: { ...DEFAULT_PROMPTS },
@@ -1420,6 +1455,22 @@ export default function App() {
   }, []);
 
   useEffect(() => {
+    localStorage.setItem(STYLE_MODE_KEY, styleMode);
+  }, [styleMode]);
+
+  useEffect(() => {
+    localStorage.setItem(DIRECTOR_PROFILE_KEY, directorProfile);
+  }, [directorProfile]);
+
+  useEffect(() => {
+    localStorage.setItem(ART_PROFILE_KEY, artProfile);
+  }, [artProfile]);
+
+  useEffect(() => {
+    localStorage.setItem(CINE_PROFILE_KEY, cineProfile);
+  }, [cineProfile]);
+
+  useEffect(() => {
     if (outputs[stage] && outputRef.current) {
       outputRef.current.scrollIntoView({ behavior: "smooth", block: "start" });
     }
@@ -1611,7 +1662,7 @@ export default function App() {
     copyPromptFromPack("/pack_visual_job", {
       script,
       ip_names: selectedIPs,
-      art_director_profile: "default",
+      art_director_profile: artProfile,
       run_id: ensureCurrentRunId(),
     }, "阶段二任务包");
   };
@@ -1624,7 +1675,7 @@ export default function App() {
       script,
       visual,
       ip_names: selectedIPs,
-      cinematographer_profile: "default",
+      cinematographer_profile: cineProfile,
       run_id: ensureCurrentRunId(),
     }, "阶段三任务包");
   };
@@ -1637,7 +1688,7 @@ export default function App() {
       visual,
       script,
       ip_names: selectedIPs,
-      art_director_profile: "default",
+      art_director_profile: artProfile,
       force_scene: forceScene,
       run_id: ensureCurrentRunId(),
     }, forceScene === "first" ? "美术二稿 S1 任务包" : forceScene === "last" ? "美术二稿末场任务包" : "美术二稿任务包");
@@ -1653,7 +1704,7 @@ export default function App() {
       visual,
       script,
       ip_names: selectedIPs,
-      cinematographer_profile: "default",
+      cinematographer_profile: cineProfile,
       force_unit: forceUnit,
       run_id: ensureCurrentRunId(),
     }, forceUnit === "first" ? "摄影二稿首镜任务包" : forceUnit === "last" ? "摄影二稿末镜任务包" : "摄影二稿任务包");
@@ -1722,7 +1773,7 @@ export default function App() {
         ip_names: selectedIPs,
         routes: getEffectiveRoutes("script"),
         style_hint: styleHint,
-        director_profile: "default",
+        director_profile: directorProfile,
         force_scene: "auto",
       },
       visual: {
@@ -1731,7 +1782,7 @@ export default function App() {
         original_input: inputs[1] || inputs[0] || "",
         ip_names: selectedIPs,
         routes: getEffectiveRoutes("visual"),
-        art_director_profile: "default",
+        art_director_profile: artProfile,
         revision_focus: [styleHint, visualModeInstruction].filter(Boolean).join("\n\n"),
         force_scene: "auto",
       },
@@ -1742,7 +1793,7 @@ export default function App() {
         original_input: inputs[2] || inputs[0] || "",
         ip_names: selectedIPs,
         routes: getEffectiveRoutes("shot"),
-        cinematographer_profile: "default",
+        cinematographer_profile: cineProfile,
         revision_focus: styleHint,
         force_unit: "auto",
       },
@@ -2506,18 +2557,26 @@ ${review}`;
         ].filter(Boolean).join("\n\n---\n\n");
       }
 
+      const rewriteBody = {
+        stage: stageId,
+        input: revisionInput,
+        session_id: "session_" + stageId,
+        system_prompt: sysPrompt,
+        ip_names: selectedIPs,
+        run_id: currentRunId,
+        routes: getEffectiveRoutes(stageId)
+      };
+      if (stageId === "visual") {
+        rewriteBody.art_director_profile = artProfile;
+      }
+      if (stageId === "shot") {
+        rewriteBody.cinematographer_profile = cineProfile;
+      }
+
       const res = await fetch(`${API_BASE}/generate`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          stage: stageId,
-          input: revisionInput,
-          session_id: "session_" + stageId,
-          system_prompt: sysPrompt,
-          ip_names: selectedIPs,
-          run_id: currentRunId,
-          routes: getEffectiveRoutes(stageId)
-        }),
+        body: JSON.stringify(rewriteBody),
         signal: abortControllerRef.current.signal,
       });
 
@@ -2586,6 +2645,12 @@ ${review}`;
       systemRules += "\n\n" + modeInstruction;
     }
 
+    const selectedProfileText = [
+      `导演风格：${DIRECTOR_PROFILE_OPTIONS.find(option => option.value === directorProfile)?.label || directorProfile}`,
+      `美术画像：${ART_PROFILE_OPTIONS.find(option => option.value === artProfile)?.label || artProfile}`,
+      `摄影画像：${CINE_PROFILE_OPTIONS.find(option => option.value === cineProfile)?.label || cineProfile}`,
+    ].join("\n");
+
     const stageRewriteGuides = {
       script: "请重写为修订后的正式剧本。保留核心主角、核心奇观、核心关系弧和无对白/少对白设定，不要换成新故事。",
       visual: "请重写为修订后的固定要素库包。重点修正角色/场景/道具/色彩/材质/场景图提示词/参考图编号问题，不要输出分镜或视频提示词。",
@@ -2648,6 +2713,11 @@ ${review}`;
 【当前阶段系统规则】
 ==============================
 ${systemRules}
+
+==============================
+【当前选择的导演/美术/摄影画像】
+==============================
+${selectedProfileText}
 
 ==============================
 【会审后重写任务包】
@@ -2776,6 +2846,13 @@ ${revisionInput}`;
         run_id: currentRunId,
         routes: getEffectiveRoutes(stageId)
       };
+
+      if (stageId === "visual") {
+        reqBody.art_director_profile = artProfile;
+      }
+      if (stageId === "shot") {
+        reqBody.cinematographer_profile = cineProfile;
+      }
 
       // 🛡️ Bug 7 修复：仅在分镜 (shot) 阶段附加特有字段
       if (stageId === "shot") {
@@ -2982,6 +3059,7 @@ ${visualGlobalContext || "（无）"}
           ip_names: selectedIPs,
           run_id: currentRunId,
           routes: getEffectiveRoutes("shot"),
+          cinematographer_profile: cineProfile,
           execution_mode: "default", // 明确告诉后端这是普通单次执行
           segments: []
         }),
@@ -3107,18 +3185,26 @@ ${visualGlobalContext || "（无）"}
       }
       sysPrompt = withEndMarkerInstruction(sysPrompt);
 
+      const continueBody = {
+        stage: stageId,
+        input: continueInstruction,
+        session_id: "session_" + stageId,
+        system_prompt: sysPrompt,
+        ip_names: selectedIPs,
+        run_id: currentRunId,
+        routes: getEffectiveRoutes(stageId)
+      };
+      if (stageId === "visual") {
+        continueBody.art_director_profile = artProfile;
+      }
+      if (stageId === "shot") {
+        continueBody.cinematographer_profile = cineProfile;
+      }
+
       const res = await fetch(`${API_BASE}/generate`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          stage: stageId,
-          input: continueInstruction,
-          session_id: "session_" + stageId,
-          system_prompt: sysPrompt, // 🌟 修改这里
-          ip_names: selectedIPs,
-          run_id: currentRunId,
-          routes: getEffectiveRoutes(stageId)
-        }),
+        body: JSON.stringify(continueBody),
         signal: abortControllerRef.current.signal,
       });
 
@@ -3340,7 +3426,7 @@ ${visualGlobalContext || "（无）"}
 
       <div style={{
         padding: '10px 32px', background: 'rgba(255,255,255,0.02)',
-        borderBottom: '1px solid ' + BORDER, display: 'flex', gap: '15px', alignItems: 'center'
+        borderBottom: '1px solid ' + BORDER, display: 'flex', gap: '15px', alignItems: 'center', flexWrap: 'wrap'
       }}>
         <span style={{fontSize: '12px', color: MUTED, fontWeight: 'bold'}}>当前美学预设:</span>
         {Object.entries(STYLE_PRESETS).map(([key, preset]) => (
@@ -3358,6 +3444,31 @@ ${visualGlobalContext || "（无）"}
             {preset.name}
           </button>
         ))}
+        <div style={{height: '24px', width: '1px', background: BORDER}} />
+        <label style={{display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', color: MUTED, fontWeight: 'bold'}}>
+          导演风格
+          <select value={directorProfile} onChange={e => setDirectorProfile(e.target.value)} style={{background: '#000', border: `1px solid ${BORDER}`, color: '#FFF', padding: '6px 10px', borderRadius: '6px', fontSize: '12px'}}>
+            {DIRECTOR_PROFILE_OPTIONS.map(option => (
+              <option key={option.value} value={option.value}>{option.label}</option>
+            ))}
+          </select>
+        </label>
+        <label style={{display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', color: MUTED, fontWeight: 'bold'}}>
+          美术
+          <select value={artProfile} onChange={e => setArtProfile(e.target.value)} style={{background: '#000', border: `1px solid ${BORDER}`, color: '#FFF', padding: '6px 10px', borderRadius: '6px', fontSize: '12px'}}>
+            {ART_PROFILE_OPTIONS.map(option => (
+              <option key={option.value} value={option.value}>{option.label}</option>
+            ))}
+          </select>
+        </label>
+        <label style={{display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', color: MUTED, fontWeight: 'bold'}}>
+          摄影
+          <select value={cineProfile} onChange={e => setCineProfile(e.target.value)} style={{background: '#000', border: `1px solid ${BORDER}`, color: '#FFF', padding: '6px 10px', borderRadius: '6px', fontSize: '12px'}}>
+            {CINE_PROFILE_OPTIONS.map(option => (
+              <option key={option.value} value={option.value}>{option.label}</option>
+            ))}
+          </select>
+        </label>
       </div>
 
       <nav style={styles.nav}>
