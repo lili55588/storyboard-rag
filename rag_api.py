@@ -276,36 +276,32 @@ STAGE_TEMPERATURES = {
     "render": 0.30,
 }
 
-SCRIPT_DRAMA_GUARD = """【剧本质量护栏】
-1. 每个场号都必须包含一个温柔但明确的“小戏剧动作”：角色想做什么、遇到什么阻力、做出什么选择、造成什么结果。治愈片也不能只写一路看风景。
-2. 全片至少要有一条关系变化弧：例如一开始谁跟随谁、谁误判了环境、谁拖慢了节奏；中段通过一次小麻烦改变相处方式；结尾用一个可看见的动作证明关系已经变化。
-3. 环境奇观必须由角色行动触发、阻碍或奖励角色行动；不要把场景写成“到达新地点后欣赏风景”的陈列。
-4. 如果用户目标或项目气质是治愈、童话、软萌、轻冒险，阻力必须低危险、可触摸、可玩耍，例如花丛遮挡、树根小坡、浅溪石头、蘑菇弹性、叶片桥、阳光/水纹方向错误。不要把浓雾、黑暗、深水、断崖、暗区、惊吓或悬疑作为核心机制。
-5. 治愈童话场景要优先设计“一眼可记住的童话地标物 + 中景可表演的小舞台”，例如向日葵花田、雏菊坡、树根拱门、粉色蘑菇地、藤蔓秋千、浅溪边、柔软苔藓木桥；雾只能是轻透明空气感，不能成为主角。
-6. 同一种剧情公式最多连续使用两次；第三次必须迫使角色主动做出新选择，或让道具/关系/空间状态发生不可逆变化。不要把90秒写成“遇险-救援-愣住-继续走”的循环。
-7. 每个场号结束时，观众必须看见至少一个已经改变的事实：角色站位、道具归属、路径开闭、误会程度、信任程度、危险来源或目标方向。没有变化就重写该场。
-8. 编剧诊断概念只用于内部判断和修稿，不要在成品剧本中输出“激励事件、人物弧线、转折点、冲突、节拍”等术语解释。"""
+SCRIPT_DRAMA_GUARD = """【剧本创作自由护栏】
+1. 保留正式剧本制式：视频风格、画面比例、剧本摘要、剧本内容、场号、道具、动作行和定格卡点都要完整；但内容不要按教学清单填空，要像原创编剧一样主动生成主题、主线、支线和世界机制。
+2. 剧本摘要必须写清：主题、三幕结构、主线、支线、前3秒钩子、画面记忆点、AI视频可生成性、故事梗概、故事背景、故事设定和一句话故事。三幕结构是创作骨架，不要在正文里输出理论术语解释。
+3. 每个场号都要让局面发生可见变化：目标、关系、空间、道具归属、误会、危险、奖励或情绪至少有一项改变。变化可以很轻，但不能只有氛围陈列。
+4. 如果用户指定角色或角色图，只把它们当作角色特征、永久道具、关系气质和风格锚点；不要让既有角色限制故事脑洞。没有角色参考时，允许自行原创角色。
+5. 保留用户指定的风格方向；在此前提下可以自由选择类型、地点、事件、道具、冲突强度、支线和结尾余味。
+6. 可选使用三种短视频故事发动机：身份反差法、情感错位法、规则打破法。它们只是打开脑洞的引擎，不是固定模板；可以混合，也可以不用。
+7. AI视频剧本比传统剧本更依赖强画面感、情绪爆点和可生成的视觉描述。少写抽象心理，多写可见动作、道具状态、环境反应、光线变化和角色站位变化。
+8. 道具和环境应当参与剧情、关系或情绪变化，但不强制套用固定玩法。不要连续复用同一个剧情公式。
+9. 剧本阶段不要输出 AI 视频提示词、生成策略、角色资产卡、视觉锁定描述或自检过程。
+10. 编剧诊断概念只用于内部判断和修稿，不要在成品剧本中输出“激励事件、人物弧线、转折点、冲突、节拍”等术语解释。"""
 
-SOFT_PET_SUCCESS_GUARD = """【香蕉猫/刀盾狗成功样片叙事护栏】
-1. 这类片子的“味道”来自一串可见微事件，而不是一个大危机拉满全片。70-110秒通常需要8-14个可读小节拍，合并成4-6个场号。
-2. 每个场号都要像一个小玩法：新奇物/地形出现 → 角色靠近或试探 → 发生轻微物理反馈 → 其中一方笨拙反应 → 位置、道具、路径或关系状态发生变化。
-3. 香蕉猫和刀盾狗的核心搭配是“好奇发起 + 笨拙跟随/本能护卫/被动承接”。不要把它们写成会计划、会解释、会说话、会精密战斗的人类小队。
-4. 圆盾、叶片、蘑菇、水面、花粉、藤蔓、石头坡这类元素必须参与动作：能挡、滑、弹、遮、反射、溅起或打开新路。不要只当背景装饰。
-5. 成功片会交替使用三种节拍：安静奇观、笨拙物理笑点、温柔关系确认。连续两个“走路/凝视/停住/看风景”之后必须出现新的物理事件或选择。
-6. 阻力要低危险、可触摸、可玩耍；避免深水断崖、黑暗惊吓、追杀对抗、打怪升级成为核心。危险可以短暂出现，但要迅速转化成玩法、发现或关系变化。
-7. 原片尺度更接近“童话微缩花园”，不是普通正常比例森林：花朵、叶片、蘑菇、草坡、飞船或其他道具常常明显大过角色，形成“小生命面对大世界”的包围感和玩法。但不要写成显微镜素材、只拍局部苔藓或背景完全虚化。
-8. 结尾必须用一个可见动作落在关系上：并肩停下、盾牌放低、共享遮蔽、一起看见新景象、轻碰同伴等。不要只用远景美图或空泛“继续前行”收束。"""
+SOFT_PET_SUCCESS_GUARD = """【香蕉猫/刀盾狗角色参考护栏】
+1. 香蕉猫、刀盾狗或类似角色只作为角色特征、永久道具、关系气质和尺度感参考，不要求复刻某个固定成功样片的剧情公式。
+2. 可以自由生成主题、主线、支线、地点、事件和结尾；只需保留用户指定角色的核心识别点、永久附属物和指定风格。
+3. 如果角色设定天然无对白，不要让它们说话、画外音自述或内心独白；用可见动作、道具反应、站位距离和共同注意点表达关系。
+4. 圆盾、叶片、蘑菇、水面、花粉、藤蔓、石头坡等元素可以成为剧情道具，也可以不用；不要为了套公式强行加入。
+5. 童话微缩花园尺度可作为默认空间气质：花朵、叶片、蘑菇、草坡或道具可以大过角色，但不要写成显微镜素材、局部苔藓素材或背景完全虚化。
+6. 结尾最好落在一个可见变化上：关系、目标、道具、路径、认知或世界状态发生改变。具体如何改变由故事主题决定。"""
 
-SOFT_PET_DIRECTOR_MATRIX_GUARD = """【香蕉猫/刀盾狗导演总控矩阵】
-1. 导演总意图：不是普通萌宠流水账，而是“小生命在大世界里认真探索”的无对白童话观察喜剧。所有剧本、场景、分镜和提示词都要服务“认真、迟钝、轻麻烦、温柔回响”。
-2. 观众情绪路径：好奇进入 → 小玩法触发 → 笨拙反应/轻笑点 → 安静奇观停顿 → 关系确认。不要长期停在同一种情绪。
-3. 角色调度：香蕉猫偏好奇触发、靠近未知、慢半拍受反馈；刀盾狗偏跟随、误判、本能举盾、被动承接或笨拙补位。角色不解释、不计划、不说话。
-4. 空间美术：空间必须是可游走的童话微缩花园，不是背景贴图。每场要有一个可记住的地标物和一个可表演的小舞台，且地标/路径/道具能参与动作。
-5. 道具机制：圆盾、叶片、蘑菇、水面、花粉、藤蔓、石头坡、飞船舱门等不是装饰，必须能遮挡、弹起、反射、滑行、打开路径、制造误会或确认关系。
-6. 摄影原则：镜头像耐心观察者，而不是炫技摄影师。用静止锁定、角色高度、斜俯拍/俯拍、慢推/慢拉、横向跟随和前景遮挡组织观看，不要全片单一机位。
-7. 剪辑原则：以硬切为主，切在状态变化上。每次切换都要让观众更清楚动作、空间、关系或笑点，不用无意义快切填节奏。
-8. 声音想象：默认无对白；节奏主要靠环境声和触感音支撑，如草叶摩擦、轻脚步、盾牌轻响、花粉喷散、水面涟漪、蘑菇回弹。音乐只托住情绪，不抢戏。
-9. AI执行原则：每个生成单元必须同时写清“看哪里、角色怎么动、道具/环境怎么反馈、结束时局面变成什么”。不能只堆风格词、材质词或空泛治愈氛围。"""
+SOFT_PET_DIRECTOR_MATRIX_GUARD = """【香蕉猫/刀盾狗导演参考矩阵】
+1. 这是角色和风格参考，不是剧情模板。保留“小体型角色面对大世界”的尺度感、角色核心特征和指定风格；主题、主线、支线、类型和事件允许自由原创。
+2. 角色关系可以是跟随、误会、保护、竞争、交换、陪伴、分离、和解或反转，不必固定成某一种搭配。
+3. 如果角色设定无对白，所有关系变化通过动作、道具、站位、停顿和共同注意点表达；如果用户另行设定可说话，则按用户设定处理。
+4. 空间美术默认可使用童话微缩花园尺度和 ASSET-SCENE-10 风格 Bible，但具体地标、路径、道具和事件由故事主题决定。
+5. 阶段三以后需要进入制作执行时，再把自由创意翻译成清楚的镜头、动作、道具反馈和衔接状态；阶段一不要为了执行而牺牲脑洞。"""
 
 SOFT_PET_CAMERA_GUARD = """【香蕉猫/刀盾狗原片运镜与镜头语言护栏】
 1. 总体摄影风格是“安静观察 + 角色高度亲近 + 适时斜俯拍/俯拍交代空间 + 少量柔和推轨”，不是炫技运动镜头。优先让角色、植物、道具自己动，镜头只轻微陪伴。
@@ -336,6 +332,15 @@ SHOT_NARRATIVE_GUARD = """【阶段三分镜叙事与场景锁定护栏】
 17. 声音设计曲线：在“总体导演策略”里增加“声音曲线”一行，写清全片声音的 macro 设计（例：静默 → 单点脆响 → 风声起 → 喘息 → 完全静默 → 一记湿润闷响 → 收束环境音），不要每个生成单元独立堆音效词；生成单元的音效字段只写偏离曲线的差异。
 18. 视觉差异锚点表：每个场景在场景头部写一行“与上一场视觉差异锚点”，从光线方向变化/主导色变化/景深差异/前景元素更替/远景结构更替五项中至少选两项，写成可被美术看见的具体差异；不允许写成“整体氛围转冷”这类抽象描述。"""
 
+SHOT_EXECUTION_FEASIBILITY_GUARD = """【阶段三动作/空间可执行性护栏】
+1. 分镜阶段不是只把文本顺承成镜头；写任何弹、滑、摔、撞、跳、抓、举盾、反弹、坠落、托举、攀爬、推动等动作前，必须先做内部“动作/空间可执行性审查”。
+2. 每个生成单元必须新增一行字段：`动作/空间可执行性：`，用一句话写清角色高度、目标接触点、输入力来源、接触状态、出入路径、环境承载是否成立；如果不成立，必须先改动作链或场景地形，再写完整提示词。
+3. 六项硬检查：空间拓扑（角色和道具/地形的高低、距离、可达性）、动作力学（输入力、重心、惯性、反作用力方向）、接触状态（未接触/瞬间撞击/持续压住/滑动/脱离）、连续路径（上一镜出口=下一镜入口）、环境承载（坡、湿泥、草堆、低矮面、支撑物是否提供条件）、镜头可读性（关键接触点不被遮挡）。
+4. 禁止“轻触/轻搭/轻碰”直接造成巨大位移，除非明确写出触发式机关、超敏弹簧或全身重量/高处坠落/滑倒前扑等输入力来源。触碰短动作必须和触发结果同段呈现，但物理原因不能省略。
+5. 巨大物体的可达性必须交代：角色要摔到、踩到、压到高处表面，必须说明角色处在更高的草坡/土坎/树根/台阶，或该表面低矮贴地/与角色齐平；否则不能写“摔到伞面/爪子压伞盖”。
+6. 盾牌、叶片、蘑菇等“可反弹面”不能被误写成平台。撞击镜头要写清“接触瞬间→反弹脱离→出射方向”，禁止角色站在、坐在、趴在撞击面上，除非剧情本来就是停留。
+7. 如果某个动作需要环境条件才能成立（滑倒需要湿滑/斜坡，摔入草堆需要草堆在运动路径终点，斜弹需要盾面角度，跃起需要助跑/支点），必须把条件写进场景或动作字段。"""
+
 VISUAL_COMPACT_CHARACTER_GUARD = """【视觉开发角色卡节省规则】
 如果项目已有角色原图或已指定 @图片1、@图片2，角色一致性交给原图，不要重新长篇描写角色外貌。
 角色卡只输出：角色原图引用写法、20-40字短识别兜底、永久附属物、少量允许变化状态、3-6条禁止跑偏、参考图登记。
@@ -343,11 +348,117 @@ VISUAL_COMPACT_CHARACTER_GUARD = """【视觉开发角色卡节省规则】
 【短识别兜底防污染说明】
 "短识别兜底"和"完整锁定描述"是阶段二专用的角色卡内部锚定字段，用于"无原图/跑偏修正/首次建模"。这两段必须明令禁止在阶段三的任何字段复制使用——例如"玻璃球眼睛、短爪、香蕉躯干、橙白幼猫脸、小短腿"等锚定语只能留在角色卡里，绝不能出现在阶段三的镜头类型、注意力调度、主动作与表演层、灯光氛围、衔接状态或完整提示词里。请在角色卡末尾用一行隐藏字段提醒："（短识别兜底仅供阶段二建模/跑偏修正使用，阶段三只用 @图片X+动作，禁止复制锚定语）"。"""
 
-VISUAL_SCENE_IMAGE_PROMPT_GUARD = """【场景图提示词边界】
+VISUAL_CHARACTER_IDENTITY_BOARD_GUARD = """【无角色原图时的角色身份板提示词规则】
+1. 如果用户已经提供真实角色原图，角色卡保持极简：登记 @图片1-9 原图引用、短识别兜底、永久附属物、允许变化状态、禁止跑偏和参考图登记；不要输出长篇角色身份板生图提示词，也不要重做已有角色。
+2. 如果没有角色原图或角色参考模式是"无角色原图"，每个主角角色卡必须新增字段：`角色身份板生图提示词（无角色原图时必须写，有角色原图时写"已有角色原图，不生成"）`。
+3. 该字段必须是可直接提交图片 API 的完整 prompt，用于生成 @图片1-9 的 16:9 Character Identity Board，而不是单张角色海报、姿势图、首帧、尾帧、剧情关键帧或场景插画。
+4. 不要压缩、不要摘要、不要省略下面模板的任何规则段落。只允许把 `[CHARACTER SEED]`、`[AGE / BODY TYPE]`、`[VISUAL MEDIUM]`、`[STYLE]`、`[OTHER DETAILS - OPTIONAL]` 五个字段根据剧本和角色性格逻辑填实；其余模板段落必须完整保留。
+
+【角色身份板生图提示词完整模板】
+Create a fully original, copyright-safe character and present them as an artistic CHARACTER IDENTITY BOARD.
+
+[CHARACTER SEED]:
+Enter the core idea here.
+
+[AGE / BODY TYPE]:
+Enter age impression, body type, posture, physical presence or creature anatomy here.
+
+[VISUAL MEDIUM]:
+Enter the exact rendering medium here.
+
+Examples:
+realistic cinematic character design, fashion editorial photography look, semi-realistic painterly realism, modern 3D animation character design, 2D anime character design, graphic novel illustration, watercolor storybook illustration, flat vector poster illustration, oil-painting-inspired character art, ink and wash illustration, semi-realistic creature concept art.
+
+[STYLE]:
+Enter the aesthetic direction here.
+
+Examples:
+urban street fashion, luxury sports editorial, dark cinematic noir, soft melancholic artbook mood, post-apocalyptic survival wear, retro-future fashion, minimalist high-fashion, cozy slice-of-life, gritty underground music-video energy, elegant fantasy costume design, poetic coastal fantasy, bioluminescent natural history mood.
+
+[OTHER DETAILS - OPTIONAL]:
+Enter any extra details, constraints, mood, outfit hints, props, colors, themes, personality hints or presentation preferences here.
+
+Invent everything else:
+character name, alias or title, role, personality traits, emotional tone, visual theme, outfit design or body design, color palette, signature prop or signature biological feature, recognizable silhouette, pose language, small identity notes.
+
+Originality rules:
+The character must not resemble any existing anime, manga, game, movie, comic, celebrity, athlete, mascot, franchise character or known copyrighted creature.
+Do not copy recognizable IP elements, costumes, hairstyles, uniforms, weapons, logos, symbols, color combinations, silhouettes, powers or signature visual traits.
+Avoid fan-art aesthetics.
+Create a fresh visual identity from scratch.
+
+Character authenticity rules:
+Create the character with a strong sense of individuality and non-generic design.
+Avoid overly polished, overly idealized or repetitive visual features that make the character feel like a default AI-generated face, stock design, cloned archetype or generic creature.
+
+If the character is human or humanoid:
+Use distinctive facial structure, subtle asymmetry, natural variation, small imperfections and believable proportions.
+The character should feel specific, grounded and recognizably individual.
+If the character is attractive, keep the appeal natural, tasteful and appropriate to the chosen visual medium.
+
+If the character is stylized:
+Preserve uniqueness through original shape language, expressive proportions, distinctive features, posture and clear personality cues.
+Avoid default genre clichés and repeated beauty standards.
+
+If the character is non-human:
+Preserve uniqueness through original anatomy, believable biological structure, distinctive proportions, functional features, surface texture and clear personality cues.
+Do not make it feel like a generic mascot, pet monster or stock fantasy creature.
+
+Medium and style control:
+[VISUAL MEDIUM] controls the rendering language.
+[STYLE] controls the aesthetic direction.
+The character identity board format is only the presentation format.
+The presentation must adapt to [VISUAL MEDIUM] and [STYLE], not override them.
+Use visual traits that belong naturally to the selected medium.
+
+Create an artistic 16:9 CHARACTER IDENTITY BOARD.
+
+The board should feel like a curated visual identity presentation, not a generic turnaround sheet.
+
+Board content:
+large full-body main character view, neutral full-body view, back view, profile view, secondary attitude pose, 4 to 6 face or expression studies, outfit detail close-ups or anatomy detail close-ups, key prop close-up or signature feature close-up, small silhouette or shape study, color palette strip, short readable identity notes.
+
+Layout:
+asymmetrical, elegant, visually memorable, large empty space, clean separation between all views, no overlapping bodies, no cropped faces, no hidden limbs, no clutter.
+
+Text on the board may include:
+character name, alias, role, personality traits, core theme, signature prop or feature, color notes.
+
+Background:
+pure white or soft off-white, minimal clean graphic design, no environment, no logo, no watermark.
+
+Prioritize:
+accurate visual medium, strong unique identity, readable outfit design or anatomy design, clear personality, original character design, natural or stylized individuality as appropriate, believable uniqueness, non-repetitive character design, artistic identity-board presentation."""
+
+SCENE_WORLD_STYLE_BIBLE_CN = """【默认场景世界风格 Bible · 参考 ASSET-SCENE-10】
+这不是固定向日葵题材，而是后续所有场景图默认继承的统一视觉语言；除非用户明确指定另一套美术方向，否则 @图片10-49 都以此作为世界观风格锚点。
+风格定位：风格化半写实 3D 动画电影场景，电影感但非照片写实；不是纯卡通，不是玩具质感。画面材质柔软可信，细节丰富，有高质量 CG 渲染感，同时保留绘本/动画电影的温润色彩。
+光线与色彩：自然日光，柔和、通透、有斑驳光影。整体偏温暖清新，背景用蓝绿色森林空气感拉开空间层次。色彩是绘画式调色，不追求照片真实，而追求动画电影里的干净、可读、舒服。
+空间气质：开阔、透气、童话自然感。画面不能压抑，不能像密集植物隧道，也不能像封闭森林。中景必须保留清晰的表演空地，方便后续角色合成或做分镜动作。
+材质语言：草地、泥土、落叶、苔藓、碎石、野花都要自然混合。地面不能像人工草皮，也不能是重复贴图；要有长短不一的草丛、裸露土壤、潮湿暗色斑块、自然杂草和轻微踩压痕迹。
+镜头语言：适合做多机位环境设计板：一个大画格展示主空间布局，其他小画格展示低机位、侧视、近景背景、前景遮挡等实用机位。所有机位必须属于同一个空间，地标、光线方向、草高、地面纹理要互相对应。
+尺度感：偏童话微缩花园尺度。草、叶子、花盘、石头等植物地标可以比香蕉猫、刀盾狗这类小体型角色更大，但这只是尺度语言，不要求每场都出现向日葵。
+可直接复用的中文风格提示词：风格化半写实 3D 动画电影环境，电影感但非照片写实，柔软可信材质，自然日光，柔和斑驳光影，绘画感色彩分级，高细节 CG 渲染，清新通透的蓝绿色空气透视，童话微缩花园尺度，开阔透气的自然场景，前景有植物遮挡，中景保留清晰表演空地，后景有可读的森林空间深度。地面材质自然混合：长短不一的草丛、裸露有机土壤、落叶、碎石、潮湿暗色苔藓斑块、小野花、自然踩压痕迹。整体不是纯卡通，不是玩具质感，不是写实摄影，不压抑，不封闭，不是植物隧道。"""
+
+SCENE_WORLD_STYLE_BIBLE_EN = """Default Scene World Style Bible, referenced from ASSET-SCENE-10, not sunflower-specific:
+Use this as the default shared visual language for all @image10-49 scene assets unless the user explicitly asks for a different art direction.
+Stylized semi-realistic 3D animated film environment, cinematic but not photorealistic, soft believable materials, high-detail CG rendering, warm storybook / animated film color warmth, not pure cartoon, not toy-like.
+Natural daylight with gentle dappled lighting, soft transparent illumination, painterly color grading, warm fresh foreground color balanced by fresh blue-green atmospheric forest depth in the background.
+Airy and open fairy-natural space. The location should feel breathable, not oppressive, not a dense plant tunnel, not an enclosed forest corridor. Keep a clear midground performance space for later character compositing and storyboard action.
+Natural ground material language: mixed grass, exposed organic soil, fallen leaves, moss, pebbles, small wildflowers, damp dark moss patches, natural weeds, varied grass lengths and subtle compression marks. Avoid artificial turf, plastic grass, repeated texture tiles or mesh grass.
+Multi-camera environment design board language: one large panel establishes the master spatial layout; smaller panels show practical low-angle, side-view, close background plate and foreground-occlusion angles. All panels must belong to the same physical location with matching landmarks, light direction, grass height, ground texture and camera corridors.
+Fairy miniature garden scale when appropriate: grass, leaves, flower heads, stones and natural landmarks can be larger than banana-cat / shield-dog sized characters, while still reading as a usable animated film environment, not a macro texture sample.
+Reusable English style prompt: Stylized semi-realistic 3D animated film environment, cinematic but not photorealistic, soft believable materials, natural daylight, gentle dappled lighting, painterly color grading, high-detail CG rendering, fresh blue-green atmospheric depth, fairy miniature garden scale, airy and open natural setting, foreground plant occlusion, clear midground performance space, readable background depth. Natural ground materials with varied grass lengths, exposed organic soil, fallen leaves, pebbles, damp dark moss patches, small wildflowers, and subtle compression marks. Not cartoonish, not toy-like, not realistic photography, not oppressive, not enclosed, not a plant tunnel."""
+
+VISUAL_SCENE_IMAGE_PROMPT_GUARD = f"""【场景图提示词边界】
 每个场景卡必须包含一个可手动复制去生图的场景生图提示词字段。
 该字段一次只输出一种版本：即梦中文场景生图提示词 或 MJ英文场景生图提示词，不要双语并列。
 场景生图提示词不是视频分镜提示词：不要写运镜、镜头运动、生成时长、首尾帧、提交策略。
 重点写场景空间、主体留白、前景/中景/后景、关键道具、光线、材质、色彩、风格、画幅比例。
+场景图生图提示词不设字数上限，不要压缩、不要摘要、不要为了节省字符删掉已经成立的空间结构、构图策略、材质细节、光线状态、色彩逻辑、空气感、连续性锚点或负面约束；越详细越好，必须能直接提交图片 API。
+
+【默认场景世界风格 Bible】
+{SCENE_WORLD_STYLE_BIBLE_CN}
 
 【空场景美术与尺度硬约束】
 1. 场景图是空场景资产，不出现角色、动物、人物、拟人角色或额外生物；后续会用角色原图单独合成。
@@ -362,6 +473,16 @@ VISUAL_SCENE_IMAGE_PROMPT_GUARD = """【场景图提示词边界】
 10. 禁止默认使用：显微镜视角、微距摄影、小人国、露珠湖泊、极浅景深、背景完全虚化、只拍一小块苔藓/叶片/水滴、塑料草皮、网格草地、人工草坪、重复纹理、写真摄影感、阴冷写实峡谷。童话微缩、巨型叶片等尺度词只在剧本/IP明确需要"小生命面对大世界"时使用。
 11. 反同质化（场景图提示词层面）：所有场景图 prompt 不得共用相同的"风格头"或"风格尾"。每场必须用本场最强的视觉特征作为开篇关键词——例如 S1 用"阳光斑驳穿草冠"、S2 用"水膜反光与跳跃光斑"、S3 用"明暗交界线分割画面"——而不是固定写"3D半写实梦幻动物动画，正常尺度动画电影空间..."。风格词、画幅、质量约束可以放在中后段，但不要 4 张图都是同一个 30 字开头模板。
 12. 同空间复用规则：如果两场（如 S3/S4）共用同一个空间且复用同一张 @图片，第二张场景卡必须给出"图像层面的明确差异锚点"（光源方向变化、新增前景元素、远景透出新景深、地面状态改变之一），不能只在 prompt 里靠"光线状态改变"这种文字叙述蒙混过去——要让美术看到这条 prompt 时知道"我必须画出哪一处可见的差异"。"""
+
+SCENE_WORLD_STYLE_CONSISTENCY_GUARD = f"""【场景世界观统一硬约束】
+默认视觉风格锚点：
+{SCENE_WORLD_STYLE_BIBLE_CN}
+
+在写单张场景图提示词之前，必须先从视觉意图总览、色彩演进表、核心场景卡和第一张核心场景图中提炼一套"全片场景世界观基线"。这套基线至少包含：统一美术方向、色温逻辑、光线语言、材质语言、地面质感、植物/地标形状词、尺度语言、空气感、渲染风格。阶段二视觉意图总览或阶段四执行策略里必须显式写出这套"场景世界观基线"，让后续每条生图 prompt 都有可继承的共同锚点。
+每条场景生图 prompt 都必须继承这套基线，同时只变化本场的空间任务、童话地标物、构图引导线、光源状态和局部道具。不要让一张是暖橙童话森林，下一张突然变成冷蓝写实洞穴、摄影风景照、玩具渲染或二次元平面风，除非剧本或用户明确要求这种反差或明确替换默认风格 Bible。
+每条场景生图 prompt 不设字数上限；必须完整展开空间、构图、材质、光线、色彩、空气感、尺度、连续性和负面约束，不要生成短提示词或摘要版提示词。
+如果 @图片10 是第一张/主场景锚点，@图片11-49 必须用具体词继承 @图片10 的世界风格，例如同一色温体系、同类植物/蘑菇/树根/苔藓语言、同类地面材质、同类空气透视和同一 3D 动画电影质感；不要只写"同风格"。
+场景之间允许有明确递进，但递进应发生在空间任务、主地标、光源方向、地面状态、前景元素或远景结构上，不应发生在渲染风格和世界观类型上。"""
 
 
 # 改造：阶段二美术指导画像（与阶段一导演画像配对）
@@ -785,6 +906,7 @@ class ImageGenerationRequest(BaseModel):
     response_format: str = "b64_json"
     n: int = 1
     reference_image_ids: list[int] = []
+    style_reference_image_ids: list[int] = []
     bind_to_image_id: Optional[int] = None
     bind_category: str = ""
     bind_description: str = ""
@@ -812,11 +934,21 @@ class InspirationRequest(BaseModel):
     previous_ideas: list[dict] = []
 
 
+class PackScriptJobRequest(BaseModel):
+    """打包阶段一剧本任务包：生成一条自包含 prompt，可粘贴到任何高级模型窗口执行。"""
+    input: str
+    ip_names: list[str] = []
+    style_hint: str = ""
+    director_profile: str = "default"
+    run_id: str = ""
+
+
 class PackVisualJobRequest(BaseModel):
     """打包阶段二视觉开发任务包：生成一条自包含 prompt，可粘贴到任何高级模型窗口执行。"""
     script: str  # 阶段一剧本全文
     ip_names: list[str] = []
     art_director_profile: str = "default"
+    scene_prompt_mode: str = "jimeng"
     run_id: str = ""
 
 
@@ -837,6 +969,7 @@ class PackArtCutJobRequest(BaseModel):
     art_director_profile: str = "default"
     revision_focus: str = ""  # 用户修订重点（可选）
     force_scene: str = "auto"  # "auto" / "first" / "last"
+    scene_prompt_mode: str = "jimeng"
     run_id: str = ""
 
 
@@ -858,6 +991,8 @@ class SaveCliJobRequest(BaseModel):
     run_id: str = ""
     job_kind: str = "cli_job"
     label: str = "CLI任务包"
+    target_stage: str = ""
+    target_label: str = ""
 
 
 class DirectorCutRequest(BaseModel):
@@ -982,6 +1117,39 @@ def _resolve_force_scene_instruction(force_scene: str) -> str:
         )
     return ""
 
+
+def _scene_prompt_mode_instruction(mode: str = "jimeng") -> str:
+    if (mode or "").strip().lower() == "mj":
+        return (
+            "【场景图提示词模式：MJ英文生图】\n"
+            "最终固定要素库包中每个场景卡必须输出且只输出一种场景生图提示词字段："
+            "**MJ英文场景生图提示词**。\n"
+            "该字段必须使用英文，适合 ComfyUI/SDXL/Midjourney 类英文提示词模型；"
+            "不要输出“即梦中文场景生图提示词”“中文生图 Prompt”或任何中文场景 prompt 字段；"
+            "不要双语并列。\n"
+            "Default scene style bible to inherit unless the user explicitly replaces the art direction:\n"
+            f"{SCENE_WORLD_STYLE_BIBLE_EN}\n"
+            "英文场景 prompt 要写清 empty environment plate, readable animated film environment, "
+            "foreground/midground/background, performance space, lighting, materials, color, composition, "
+            "16:9, no characters, no animals, no people, no text, no watermark. "
+            "Style lock: stylized semi-realistic 3D animated film environment, cinematic but not photorealistic, "
+            "soft believable materials, natural daylight, gentle dappled lighting, painterly color grading, high-detail CG rendering, "
+            "fresh blue-green atmospheric depth, airy and open natural setting, foreground plant occlusion, clear midground performance space, readable background depth, "
+            "not cartoonish, not toy-like, not realistic photography, not oppressive, not enclosed, not a plant tunnel. Do not place this style lock as the opening phrase; "
+            "open each prompt with the strongest scene-specific visual feature to avoid identical style heads. "
+            "For banana cat / shield dog stories, use fairy miniature garden scale when useful; "
+            "grass/moss ground must be natural and uneven with varied grass clumps, soil, leaves, pebbles, damp dark patches; "
+            "avoid microscopic macro close-up, extreme shallow depth of field, fully blurred background, artificial turf, plastic grass, mesh grass."
+        )
+    return (
+        "【场景图提示词模式：即梦中文生图】\n"
+        "最终固定要素库包中每个场景卡必须输出且只输出一种场景生图提示词字段："
+        "**即梦中文场景生图提示词**。不要输出 MJ 英文场景生图提示词，不要双语并列。\n"
+        "除非用户明确替换美术方向，所有中文场景 prompt 默认继承以下场景世界风格 Bible：\n"
+        f"{SCENE_WORLD_STYLE_BIBLE_CN}\n"
+        "每条即梦中文场景 prompt 必须写清空场景多视角设计板、3到5格分格、左侧大格主空间布局、其余小格实用机位、前景植物遮挡、中景表演留白、可读后景、自然日光、柔和斑驳光影、绘画感调色、蓝绿色空气透视、自然草地泥土苔藓材质、16:9、无角色、无动物、无人物、无文字水印。"
+    )
+
 class ScriptAppealReviewRequest(BaseModel):
     script: str
     original_input: str = ""
@@ -1065,6 +1233,7 @@ CLAUDE_OPUS_47_MAX_OUTPUT_TOKENS = _int_env("CLAUDE_OPUS_47_MAX_OUTPUT_TOKENS", 
 CLAUDE_DEFAULT_4X_MAX_OUTPUT_TOKENS = _int_env("CLAUDE_DEFAULT_4X_MAX_OUTPUT_TOKENS", 64000)
 CLAUDE_OPUS_4_LEGACY_MAX_OUTPUT_TOKENS = _int_env("CLAUDE_OPUS_4_LEGACY_MAX_OUTPUT_TOKENS", 32000)
 CLAUDE_LEGACY_MAX_OUTPUT_TOKENS = _int_env("CLAUDE_LEGACY_MAX_OUTPUT_TOKENS", 8192)
+OPENAI_COMPAT_MAX_OUTPUT_TOKENS = _int_env("OPENAI_COMPAT_MAX_OUTPUT_TOKENS", 16384)
 
 
 def _claude_max_output_tokens(model_name: str = "") -> int:
@@ -1081,6 +1250,23 @@ def _claude_max_output_tokens(model_name: str = "") -> int:
     if "claude" in model:
         return CLAUDE_DEFAULT_4X_MAX_OUTPUT_TOKENS
     return CLAUDE_DEFAULT_4X_MAX_OUTPUT_TOKENS
+
+
+def _openai_compat_max_output_tokens(requested: int, node: dict | None = None) -> int:
+    """Clamp OpenAI-compatible max_tokens to the lowest common provider limit."""
+    try:
+        wanted = int(requested)
+    except Exception:
+        wanted = OPENAI_COMPAT_MAX_OUTPUT_TOKENS
+    wanted = max(1, wanted)
+    if wanted > OPENAI_COMPAT_MAX_OUTPUT_TOKENS:
+        model = (node or {}).get("model", "unknown")
+        print(
+            f"[Token上限] {model} max_tokens {wanted} 已压到 "
+            f"{OPENAI_COMPAT_MAX_OUTPUT_TOKENS}，避免模型网关 400。"
+        )
+        return OPENAI_COMPAT_MAX_OUTPUT_TOKENS
+    return wanted
 
 
 def _thinking_extra_body_for_model(model_name: str = "", base_url: str = "") -> dict | None:
@@ -1242,7 +1428,7 @@ async def safe_api_call(
                     model=node["model"],
                     messages=messages,
                     temperature=temperature,
-                    max_tokens=max_tokens
+                    max_tokens=_openai_compat_max_output_tokens(max_tokens, node)
                 )
                 # 防御：某些代理网关返回非标准格式
                 try:
@@ -1358,7 +1544,7 @@ async def stream_api_call(
                         model=node["model"],
                         messages=messages,
                         temperature=temperature,
-                        max_tokens=max_tokens,
+                        max_tokens=_openai_compat_max_output_tokens(max_tokens, node),
                         stream=True
                     ),
                     timeout=STREAM_START_TIMEOUT_SECONDS,
@@ -1389,7 +1575,7 @@ async def stream_api_call(
                                 model=node["model"],
                                 messages=messages,
                                 temperature=temperature,
-                                max_tokens=max_tokens,
+                                max_tokens=_openai_compat_max_output_tokens(max_tokens, node),
                             ),
                             timeout=STREAM_START_TIMEOUT_SECONDS,
                         )
@@ -1655,6 +1841,16 @@ def _extract_shot_unit_stats(text: str) -> dict:
             re.MULTILINE,
         )
         attention_match = re.search(r"(?:^|[\s-])(?:\*\*)?注意力调度(?:\*\*)?\s*[：:]\s*([^\n\r]+)", block, re.MULTILINE)
+        feasibility_match = re.search(
+            r"(?:^|[\s-])(?:\*\*)?(?:动作/空间可执行性|动作空间可执行性|动作可执行性|空间拓扑检查|动作力学检查|可执行性检查)(?:\*\*)?\s*[：:]\s*([^\n\r]+)",
+            block,
+            re.MULTILINE,
+        )
+        handoff_match = re.search(
+            r"(?:^|[\s-])(?:\*\*)?(?:衔接状态|下镜头接口|给下一个生成单元的接口)(?:\*\*)?\s*[：:]\s*([^\n\r]+)",
+            block,
+            re.MULTILINE,
+        )
         timeline_match = re.search(
             r"(?:^|[\s-])(?:\*\*)?(?:动作时间轴|核心动作节拍表)(?:\*\*)?[^：:\n\r]*[：:]\s*([\s\S]*?)(?=\n-\s*(?:\*\*)?(?:提交策略|使用参考图|分镜执行字段|完整提示词|给下一个生成单元)|\n###|\n##|\Z)",
             block,
@@ -1671,11 +1867,14 @@ def _extract_shot_unit_stats(text: str) -> dict:
             "has_action_duration": bool(re.search(r"(?:^|[\s-])(?:\*\*)?动作有效时长(?:\*\*)?\s*[：:]", block)),
             "has_attention": bool(attention_match),
             "has_action_timeline": bool(re.search(r"(?:^|[\s-])(?:\*\*)?(?:动作时间轴|核心动作节拍表)(?:\*\*)?[^：:\n\r]*[：:]", block)),
+            "has_feasibility": bool(feasibility_match),
             "refs": refs_match.group(1).strip() if refs_match else "",
             "scene_refs": sorted(set(re.findall(r"@图片(?:1[0-9]|2[0-9]|3[0-9]|4[0-9])", block))),
             "has_scene_placeholder": "@场景生图提示词" in block or "场景图参考场景卡描述" in block,
             "action": action_match.group(1).strip() if action_match else "",
             "attention": attention_match.group(1).strip() if attention_match else "",
+            "feasibility": feasibility_match.group(1).strip() if feasibility_match else "",
+            "handoff": handoff_match.group(1).strip() if handoff_match else "",
             "timeline": timeline_match.group(1).strip() if timeline_match else "",
             "block": block,
         })
@@ -2142,6 +2341,159 @@ def _build_visual_quality_gate_report(
     )
 
 
+def _build_shot_execution_feasibility_issues(shot_text: str, units: list[dict]) -> list[str]:
+    """Heuristic action/space feasibility audit for Stage 3 storyboard units.
+
+    The model still does the creative repair, but these checks catch common
+    executable-storyboard failures before they become expensive image/video jobs.
+    """
+    if not units:
+        return []
+
+    source = shot_text or ""
+    issues: list[str] = []
+
+    high_risk_pattern = re.compile(
+        r"弹飞|弹起|飞出|抛起|掀飞|回弹|斜弹|反弹|坠落|下落|砸|撞|重击|"
+        r"滑倒|打滑|滑行|摔|压上|压下|压住|下压|压到|踩|跳|落回|落到|滚落|倾斜|举盾|盾心"
+    )
+    light_touch_pattern = re.compile(r"轻触|轻碰|轻轻|试探|轻搭|前爪|右前爪|爪子|搭上|点水")
+    big_motion_pattern = re.compile(r"弹飞|弹起|飞出|抛起|掀飞|甩出|直挺挺飞")
+    input_force_pattern = re.compile(
+        r"全身|身体重量|半个身体|胸口|腹部|整个人|脚下[^，。；\n\r]{0,8}滑|滑倒|"
+        r"跌|摔|前扑|扑到|踩上|踏上|跳上|下坠|坠落|从高处|坡上|土坎|树根|"
+        r"台阶|爬上|惯性|助跑"
+    )
+    trigger_mechanism_pattern = re.compile(r"触发式|超敏|机关|弹簧|开关|自动释放|临界触发")
+    mushroom_contact_pattern = re.compile(
+        r"(?:前爪|右前爪|爪子|爪|身体|全身|胸口|腹部|脚|脚掌)[^。；\n\r]{0,20}"
+        r"(?:触|碰|搭|压|踩|踏|砸|摔|扑)[^。；\n\r]{0,20}(?:蘑菇|伞盖|伞面)|"
+        r"(?:摔到|扑到|落到|落回|踩上|踏上|砸中|压上)[^。；\n\r]{0,20}(?:蘑菇|伞盖|伞面)|"
+        r"(?:蘑菇|伞盖|伞面)[^。；\n\r]{0,20}(?:被)?(?:压|踩|砸|触|碰|下陷)"
+    )
+    height_support_pattern = re.compile(
+        r"低矮|贴地|草坡|坡上|坡下|土坎|树根|台阶|齐平|低于|高于|同高|"
+        r"边缘低于|边缘齐平|高处|爬上|站在[^，。；\n\r]{0,10}高"
+    )
+    shield_pattern = re.compile(r"盾|盾牌|盾面|圆盾|盾心")
+    shield_collision_pattern = re.compile(r"砸|撞|重击|弹|反弹|斜弹|回弹")
+    platform_risk_pattern = re.compile(r"跳板|平台|落在|站在|坐在|趴在|托住|顶着")
+    explicit_not_platform_pattern = re.compile(r"不是平台|不能站|不能坐|不能趴|不能停留|接触后脱离|瞬间接触")
+    contact_state_pattern = re.compile(
+        r"接触瞬间|撞击瞬间|只在[^，。；\n\r]{0,8}瞬间|反弹脱离|接触后脱离|脱离|"
+        r"入射|出射|运动弧|反作用力|盾面角度|落点|出画方向"
+    )
+    slide_pattern = re.compile(r"滑倒|打滑|滑行|滑落")
+    slide_environment_pattern = re.compile(r"湿|泥|坡|斜|苔藓|落叶|水|露|滑面|光滑")
+
+    def focused_unit_text(unit: dict) -> str:
+        focused = "\n".join(
+            str(unit.get(key) or "")
+            for key in ("action", "timeline", "handoff", "feasibility")
+        ).strip()
+        return focused or str(unit.get("block") or "")
+
+    risk_units = [unit for unit in units if high_risk_pattern.search(focused_unit_text(unit))]
+    if risk_units and not re.search(r"动作/空间可执行性审查|动作空间可执行性审查|空间拓扑|动作力学|环境承载", source):
+        issues.append(
+            "缺少全局“动作/空间可执行性审查”。阶段三在进入全案图/视频前，应先审空间拓扑、输入力、接触状态、连续路径和环境承载。"
+        )
+
+    missing_feasibility = [
+        unit["unit_id"] for unit in risk_units if not unit.get("has_feasibility")
+    ]
+    if missing_feasibility:
+        preview = ", ".join(missing_feasibility[:10])
+        suffix = "..." if len(missing_feasibility) > 10 else ""
+        issues.append(
+            f"高风险动作单元缺少“动作/空间可执行性”字段：{preview}{suffix}。"
+            "弹、滑、摔、撞、跳、举盾等动作必须写明高度关系、接触点、输入力、接触状态、出入路径和环境条件。"
+        )
+
+    light_touch_big_motion: list[str] = []
+    mushroom_reach_risks: list[str] = []
+    shield_platform_risks: list[str] = []
+    contact_state_risks: list[str] = []
+    slide_environment_risks: list[str] = []
+
+    for unit in units:
+        text = focused_unit_text(unit)
+        uid = unit["unit_id"]
+        if (
+            light_touch_pattern.search(text)
+            and big_motion_pattern.search(text)
+            and not input_force_pattern.search(text)
+            and not trigger_mechanism_pattern.search(text)
+        ):
+            light_touch_big_motion.append(uid)
+
+        if (
+            mushroom_contact_pattern.search(text)
+            and not height_support_pattern.search(text)
+        ):
+            mushroom_reach_risks.append(uid)
+
+        if (
+            shield_pattern.search(text)
+            and shield_collision_pattern.search(text)
+            and platform_risk_pattern.search(text)
+            and not explicit_not_platform_pattern.search(text)
+        ):
+            shield_platform_risks.append(uid)
+
+        if (
+            shield_pattern.search(text)
+            and shield_collision_pattern.search(text)
+            and not contact_state_pattern.search(text)
+        ):
+            contact_state_risks.append(uid)
+
+        if slide_pattern.search(text) and not slide_environment_pattern.search(text):
+            slide_environment_risks.append(uid)
+
+    if light_touch_big_motion:
+        preview = ", ".join(light_touch_big_motion[:8])
+        suffix = "..." if len(light_touch_big_motion) > 8 else ""
+        issues.append(
+            f"输入力不足风险：{preview}{suffix} 出现“轻触/前爪/试探”等小接触却导致弹飞/飞出。"
+            "必须补全全身重量、滑倒前扑、高处坠落、助跑惯性，或明确是触发式机关。"
+        )
+
+    if mushroom_reach_risks:
+        preview = ", ".join(mushroom_reach_risks[:8])
+        suffix = "..." if len(mushroom_reach_risks) > 8 else ""
+        issues.append(
+            f"蘑菇伞面可达性不明：{preview}{suffix} 写了触碰/压/摔到蘑菇伞面，但未交代角色与伞面高低关系。"
+            "若角色要摔到伞面，需写明草坡/土坎/树根高位、伞面低矮贴地或与角色齐平。"
+        )
+
+    if shield_platform_risks:
+        preview = ", ".join(shield_platform_risks[:8])
+        suffix = "..." if len(shield_platform_risks) > 8 else ""
+        issues.append(
+            f"盾面平台化风险：{preview}{suffix} 同时出现盾面反弹/撞击与“跳板/落在/站在/托住”等词。"
+            "撞盾镜头要写清接触瞬间、反弹脱离和出射方向，避免画成角色站在盾牌平台上。"
+        )
+
+    if contact_state_risks:
+        preview = ", ".join(contact_state_risks[:8])
+        suffix = "..." if len(contact_state_risks) > 8 else ""
+        issues.append(
+            f"撞击/反弹接触状态不清：{preview}{suffix} 缺少“接触瞬间/脱离/入射出射/运动弧/反作用力”等约束。"
+            "高速撞击必须说明角色不能停留在接触面上。"
+        )
+
+    if slide_environment_risks:
+        preview = ", ".join(slide_environment_risks[:8])
+        suffix = "..." if len(slide_environment_risks) > 8 else ""
+        issues.append(
+            f"滑倒/滑行动作缺少环境承载：{preview}{suffix}。"
+            "滑倒需要湿泥、斜坡、苔藓、落叶、水膜或光滑表面等可见原因。"
+        )
+
+    return issues
+
+
 def _build_shot_quality_gate_report(shot_text: str, request_input: str) -> str:
     """Build a blocking-quality report for Stage 3 outputs. Empty string means pass."""
     visual_map = _extract_visual_scene_map(request_input or "")
@@ -2192,6 +2544,8 @@ def _build_shot_quality_gate_report(shot_text: str, request_input: str) -> str:
         issues.append(f"存在重复生成单元编号：{', '.join(stats['duplicate_units'])}。")
 
     units = stats.get("units") or []
+    issues.extend(_build_shot_execution_feasibility_issues(shot_text or "", units))
+
     missing_action_duration = [unit["unit_id"] for unit in units if not unit.get("has_action_duration")]
     if missing_action_duration:
         preview = ", ".join(missing_action_duration[:8])
@@ -2418,7 +2772,8 @@ def _build_shot_quality_gate_report(shot_text: str, request_input: str) -> str:
         f"{bullet_lines}\n\n"
         "修正指令：重新生成阶段三时，严格以阶段一剧本正文和阶段二“场景卡 · | S? |”为唯一场景来源；"
         "逐场覆盖目标、阻力、选择、结果，继承阶段二 @图片10-49 场景编号；"
-        "先输出导演剪辑表和动作有效时长，再写视频提交时长，修正总览里的单元数量和总时长。"
+        "先做动作/空间可执行性审查，逐镜写清高度关系、输入力、接触状态、运动路径和环境承载；"
+        "再输出导演剪辑表和动作有效时长，最后写视频提交时长，修正总览里的单元数量和总时长。"
     )
 
 
@@ -2519,7 +2874,14 @@ def get_prompts():
     return {}
 
 
-def _save_cli_job_prompt(prompt: str, run_id: str = "", job_kind: str = "cli_job", label: str = "CLI任务包") -> dict:
+def _save_cli_job_prompt(
+    prompt: str,
+    run_id: str = "",
+    job_kind: str = "cli_job",
+    label: str = "CLI任务包",
+    target_stage: str = "",
+    target_label: str = "",
+) -> dict:
     clean_prompt = (prompt or "").strip()
     if not clean_prompt:
         raise HTTPException(status_code=400, detail="CLI 任务包内容为空，无法保存。")
@@ -2529,30 +2891,83 @@ def _save_cli_job_prompt(prompt: str, run_id: str = "", job_kind: str = "cli_job
     os.makedirs(jobs_dir, exist_ok=True)
 
     stamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    created_ts = time.time()
     safe_kind = _safe_name_segment(job_kind, "cli_job", 64)
     filename = f"{stamp}_{safe_kind}.md"
     job_path = _safe_join_under(jobs_dir, filename)
+    target_path = ""
+    target_existing_mtime = 0.0
+    before_backup_path = ""
+    backup_path = ""
+    result_instruction = ""
+    if target_stage:
+        target_filename = _stage_filename(target_stage)
+        target_path = _safe_join_under(folder_path, target_filename)
+        target_existing_mtime = os.path.getmtime(target_path) if os.path.exists(target_path) else 0.0
+        result_dir = _safe_join_under(folder_path, "cli_results")
+        os.makedirs(result_dir, exist_ok=True)
+        safe_stage = _safe_name_segment(target_stage, "stage", 64)
+        before_backup_path = _safe_join_under(result_dir, f"{stamp}_{safe_stage}_before.md")
+        backup_path = _safe_join_under(result_dir, f"{stamp}_{safe_stage}_result.md")
+        target_name = target_label or target_filename
+        result_instruction = (
+            "## CLI/Agent 自动落盘要求（最高优先级）\n\n"
+            "- 本任务是给本地 CLI/Agent 执行的，不是网页版聊天。\n"
+            "- 先完整理解下方正式任务包，再生成最终正文。\n"
+            "- 不要把最终正文直接输出在聊天框。\n"
+            f"- 必须创建/确认项目输出目录：`{folder_path}`\n"
+            f"- 写入前如果目标主文件已存在且非空，必须先原样备份到：`{before_backup_path}`\n"
+            f"- 必须先把本次生成的正文完整写入结果备份：`{backup_path}`\n"
+            f"- 然后再处理目标主文件：`{target_path}`\n"
+            "- 目标主文件写入策略：\n"
+            "  1. 如果本次生成的是完整成品文件（含完整标题、完整结构、从开头到结尾都齐全），用本次完整成品替换目标主文件。\n"
+            "  2. 如果目标主文件已有未完成内容，而本次生成明显是“继续/续写/从上一处接着写”的片段，不要覆盖旧内容；应在旧内容末尾追加本次续写片段。\n"
+            "  3. 如果无法判断是完整替换还是续写，优先保护已有内容：保留旧主文件，把本次结果仅写入结果备份，并在聊天框说明需要人工确认。\n"
+            "  4. 不要把同一段内容重复追加；追加前检查目标主文件末尾是否已经包含本次续写开头。\n"
+            f"- 写入内容只包含“{target_name}”的最终正文；不要包含本任务说明、文件路径、执行日志、Markdown 代码围栏。\n"
+            "- 完成后聊天框只回复一段简短状态：已保存、主文件路径、备份路径、字符数。\n"
+            "- 如果当前执行环境没有文件写入能力，才退化为直接输出完整正文，并明确说明“无法写入本地文件”。\n"
+            "- 下方原任务里出现的“直接输出完整正文”，在 CLI/Agent 模式下解释为“生成完整正文并写入上述文件”。\n\n"
+            "---\n\n"
+        )
 
     header = (
         f"# {label}\n\n"
         f"- 创建时间：{datetime.now().isoformat(timespec='seconds')}\n"
         f"- run_id：{_safe_run_id(run_id) or os.path.basename(folder_path)}\n"
-        f"- 用法：把前端复制的短指令粘贴给 CLI，让 CLI 读取本文件后执行。\n\n"
+        f"- 用法：把前端复制的短指令粘贴给 CLI，让 CLI 读取本文件后执行。\n"
+        + (f"- 目标主文件：{target_path}\n" if target_path else "")
+        + (f"- 写入前备份：{before_backup_path}\n" if target_path else "")
+        + (f"- 结果备份：{backup_path}\n" if backup_path else "")
+        + "\n"
         "---\n\n"
     )
     with open(job_path, "w", encoding="utf-8", newline="\n") as f:
-        f.write(header + clean_prompt + "\n")
+        f.write(header + result_instruction + clean_prompt + "\n")
 
     abs_path = os.path.abspath(job_path)
     rel_path = os.path.relpath(abs_path, BASE_DIR).replace(os.sep, "/")
-    cli_instruction = (
-        f"请读取并执行这个任务文件：\n{abs_path}\n\n"
-        "执行要求：先打开文件理解完整任务；不要复述文件内容；不要输出过程说明；"
-        "只输出最终完整正文。"
-    )
+    if target_path:
+        cli_instruction = (
+            f"请读取并执行这个任务文件：\n{abs_path}\n\n"
+            "执行要求：先打开文件理解完整任务；生成最终正文后写入任务文件中指定的目标主文件和备份文件；"
+            "不要在聊天框输出完整正文，不要复述文件内容，不要输出过程说明；"
+            "完成后只回复已保存的主文件路径、备份路径和字符数。"
+        )
+    else:
+        cli_instruction = (
+            f"请读取并执行这个任务文件：\n{abs_path}\n\n"
+            "执行要求：先打开文件理解完整任务；不要复述文件内容；不要输出过程说明；"
+            "只输出最终完整正文。"
+        )
     return {
         "job_path": abs_path,
         "job_rel_path": rel_path,
+        "target_path": target_path,
+        "created_ts": created_ts,
+        "target_existing_mtime": target_existing_mtime,
+        "before_backup_path": before_backup_path if target_path else "",
+        "backup_path": backup_path,
         "cli_instruction": cli_instruction,
         "char_count": len(clean_prompt),
         "token_estimate": len(clean_prompt) // 2,
@@ -2561,8 +2976,65 @@ def _save_cli_job_prompt(prompt: str, run_id: str = "", job_kind: str = "cli_job
 
 @app.post("/save_cli_job")
 def save_cli_job(req: SaveCliJobRequest):
-    job = _save_cli_job_prompt(req.prompt, req.run_id, req.job_kind, req.label)
+    job = _save_cli_job_prompt(
+        req.prompt,
+        req.run_id,
+        req.job_kind,
+        req.label,
+        req.target_stage,
+        req.target_label,
+    )
     return {"status": "success", **job}
+
+
+@app.get("/cli_stage_output")
+def get_cli_stage_output(run_id: str = "", target_stage: str = "", min_updated_ts: float = 0.0):
+    if not target_stage:
+        raise HTTPException(status_code=400, detail="target_stage 不能为空。")
+    resolved_run_id, folder_path = _resolve_run_folder_for_read(run_id)
+    if not folder_path:
+        raise HTTPException(status_code=404, detail="没有找到可读取的项目输出目录。")
+
+    filename = _stage_filename(target_stage)
+    filepath = _safe_join_under(folder_path, filename)
+    if not os.path.exists(filepath):
+        return {
+            "status": "success",
+            "found": False,
+            "stale": False,
+            "run_id": resolved_run_id,
+            "target_stage": target_stage,
+            "path": filepath,
+            "content": "",
+        }
+
+    updated_ts = os.path.getmtime(filepath)
+    if min_updated_ts and updated_ts <= min_updated_ts:
+        return {
+            "status": "success",
+            "found": False,
+            "stale": True,
+            "run_id": resolved_run_id,
+            "target_stage": target_stage,
+            "path": filepath,
+            "updated_ts": updated_ts,
+            "content": "",
+        }
+
+    with open(filepath, "r", encoding="utf-8") as f:
+        content = f.read()
+    return {
+        "status": "success",
+        "found": bool(content.strip()),
+        "stale": False,
+        "run_id": resolved_run_id,
+        "target_stage": target_stage,
+        "path": filepath,
+        "updated_ts": updated_ts,
+        "updated_at": datetime.fromtimestamp(updated_ts).isoformat(),
+        "char_count": len(content),
+        "content": content,
+    }
 
 
 # ---------- 5. 四段式生产引擎 ----------
@@ -2649,12 +3121,18 @@ async def generate_endpoint(req: GenerateRequest):
                 sys_prompt = f"{sys_prompt}\n\n{SOFT_PET_SUCCESS_GUARD}"
             if req.stage == "shot" and SHOT_NARRATIVE_GUARD not in sys_prompt:
                 sys_prompt = f"{sys_prompt}\n\n{SHOT_NARRATIVE_GUARD}"
+            if req.stage == "shot" and SHOT_EXECUTION_FEASIBILITY_GUARD not in sys_prompt:
+                sys_prompt = f"{sys_prompt}\n\n{SHOT_EXECUTION_FEASIBILITY_GUARD}"
             if req.stage == "shot" and _is_banana_cat_dog_project(req.ip_names, req.input) and SOFT_PET_CAMERA_GUARD not in sys_prompt:
                 sys_prompt = f"{sys_prompt}\n\n{SOFT_PET_CAMERA_GUARD}"
             if req.stage in ("visual", "prompt") and VISUAL_COMPACT_CHARACTER_GUARD not in sys_prompt:
                 sys_prompt = f"{sys_prompt}\n\n{VISUAL_COMPACT_CHARACTER_GUARD}"
+            if req.stage in ("visual", "prompt") and VISUAL_CHARACTER_IDENTITY_BOARD_GUARD not in sys_prompt:
+                sys_prompt = f"{sys_prompt}\n\n{VISUAL_CHARACTER_IDENTITY_BOARD_GUARD}"
             if req.stage in ("visual", "image", "prompt") and VISUAL_SCENE_IMAGE_PROMPT_GUARD not in sys_prompt:
                 sys_prompt = f"{sys_prompt}\n\n{VISUAL_SCENE_IMAGE_PROMPT_GUARD}"
+            if req.stage in ("visual", "image", "prompt") and SCENE_WORLD_STYLE_CONSISTENCY_GUARD not in sys_prompt:
+                sys_prompt = f"{sys_prompt}\n\n{SCENE_WORLD_STYLE_CONSISTENCY_GUARD}"
 
             # 改造：阶段二美术指导画像注入
             if req.stage == "visual":
@@ -2853,7 +3331,7 @@ async def generate_endpoint(req: GenerateRequest):
                                 "model": current_node["model"],
                                 "messages": messages,
                                 "temperature": 0.1 if is_thinking_mode else current_temp,
-                                "max_tokens": 32768,
+                                "max_tokens": _openai_compat_max_output_tokens(16384, current_node),
                                 "stream": True
                             }
 
@@ -3082,6 +3560,57 @@ def save_output(req: SaveOutputRequest):
 # 任务包打包端点：把完整上下文打包成一条可粘贴到高级模型的自包含 prompt
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
+@app.post("/pack_script_job")
+async def pack_script_job(req: PackScriptJobRequest):
+    """打包阶段一剧本任务包：返回自包含 prompt，同时保存 CLI/Agent 落盘任务文件。"""
+    user_input = (req.input or "").strip()
+    if not user_input:
+        raise HTTPException(status_code=400, detail="用户创作请求为空，无法打包阶段一任务。")
+
+    context = await load_knowledge_for_stage("script", req.ip_names, req.run_id)
+
+    try:
+        with open(PROMPTS_PATH, "r", encoding="utf-8") as f:
+            prompts = json.load(f)
+        sys_prompt = prompts.get("script", "")
+    except Exception:
+        sys_prompt = ""
+
+    profile = _resolve_director_profile(req.director_profile)
+    profile_block = f"【本次导演画像：{profile['label']}】\n{profile['prompt']}\n" if profile["label"] != "默认（自行判断）" else ""
+    style_block = f"【本次风格/导演意图补充】\n{req.style_hint.strip()}\n" if (req.style_hint or "").strip() else ""
+
+    packed = f"""【角色与任务】
+{sys_prompt}
+
+{profile_block}
+{style_block}
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+【知识库参考】
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+{context}
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+【用户原始创作请求】
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+{user_input}
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+【执行指令】
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+请直接输出完整的剧本文档（# [项目名] · 剧本），不要解释创作过程，不要写前言后语。"""
+
+    job = _save_cli_job_prompt(
+        packed,
+        req.run_id,
+        "stage1_script",
+        "阶段一剧本任务包",
+        "script",
+        "剧本文档",
+    )
+    return {"prompt": packed, **job}
+
+
 @app.post("/pack_visual_job")
 async def pack_visual_job(req: PackVisualJobRequest):
     """打包阶段二视觉开发任务包：返回一条自包含 prompt，可粘贴到 Kiro/Codex/Antigravity 等高级模型窗口直接执行。"""
@@ -3105,7 +3634,8 @@ async def pack_visual_job(req: PackVisualJobRequest):
     profile_block = f"【本次美术画像：{profile['label']}】\n{profile['prompt']}\n" if profile["label"] != "默认（按导演画像或自行判断）" else ""
 
     # 护栏
-    guards = f"\n\n{VISUAL_COMPACT_CHARACTER_GUARD}\n\n{VISUAL_SCENE_IMAGE_PROMPT_GUARD}"
+    scene_prompt_mode_instruction = _scene_prompt_mode_instruction(req.scene_prompt_mode)
+    guards = f"\n\n{VISUAL_COMPACT_CHARACTER_GUARD}\n\n{VISUAL_CHARACTER_IDENTITY_BOARD_GUARD}\n\n{VISUAL_SCENE_IMAGE_PROMPT_GUARD}\n\n{SCENE_WORLD_STYLE_CONSISTENCY_GUARD}\n\n{scene_prompt_mode_instruction}"
 
     # 组装完整 prompt
     packed = f"""【角色与任务】
@@ -3127,9 +3657,17 @@ async def pack_visual_job(req: PackVisualJobRequest):
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 【执行指令】
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-请直接输出完整的固定要素库包（# [项目名] · 固定要素库包），不要解释创作过程，不要写前言后语。"""
+请直接输出完整的固定要素库包（# [项目名] · 固定要素库包），不要解释创作过程，不要写前言后语。
+如果上方模式是 MJ英文生图，所有场景卡只允许出现“MJ英文场景生图提示词”字段，禁止输出中文场景 prompt 字段。"""
 
-    job = _save_cli_job_prompt(packed, req.run_id, "stage2_visual", "阶段二视觉开发任务包")
+    job = _save_cli_job_prompt(
+        packed,
+        req.run_id,
+        "stage2_visual",
+        "阶段二视觉开发任务包",
+        "visual",
+        "固定要素库包",
+    )
     return {"prompt": packed, **job}
 
 
@@ -3159,7 +3697,7 @@ async def pack_shot_job(req: PackShotJobRequest):
     profile_block = f"【本次摄影画像：{profile['label']}】\n{profile['prompt']}\n" if profile["label"] != "默认（按导演/美术画像或自行判断）" else ""
 
     # 护栏
-    guards = SHOT_NARRATIVE_GUARD
+    guards = f"{SHOT_NARRATIVE_GUARD}\n\n{SHOT_EXECUTION_FEASIBILITY_GUARD}"
     if _is_banana_cat_dog_project(req.ip_names, script_text):
         guards += f"\n\n{SOFT_PET_CAMERA_GUARD}"
 
@@ -3190,7 +3728,14 @@ async def pack_shot_job(req: PackShotJobRequest):
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 请直接输出完整的即梦分镜提示词包（# [项目名] · 即梦分镜提示词包），不要解释创作过程，不要写前言后语。"""
 
-    job = _save_cli_job_prompt(packed, req.run_id, "stage3_shot", "阶段三分镜提示词任务包")
+    job = _save_cli_job_prompt(
+        packed,
+        req.run_id,
+        "stage3_shot",
+        "阶段三分镜提示词任务包",
+        "shot",
+        "即梦分镜提示词包",
+    )
     return {"prompt": packed, **job}
 
 
@@ -3212,6 +3757,7 @@ async def pack_art_cut_job(req: PackArtCutJobRequest):
         force_block = "【强制重写指令】本次必须重写最后一张场景卡，无论它是否最弱。其他场景保留原样。"
 
     user_focus = (req.revision_focus or "").strip() or "由你判断哪一张场景卡最弱，只重写最弱的一到两张。"
+    scene_prompt_mode_instruction = _scene_prompt_mode_instruction(req.scene_prompt_mode)
 
     script_block = f"\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n【阶段一剧本（叙事参考）】\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n{req.script.strip()}\n" if (req.script or "").strip() else ""
 
@@ -3239,6 +3785,10 @@ async def pack_art_cut_job(req: PackArtCutJobRequest):
 {VISUAL_COMPACT_CHARACTER_GUARD}
 
 {VISUAL_SCENE_IMAGE_PROMPT_GUARD}
+
+{SCENE_WORLD_STYLE_CONSISTENCY_GUARD}
+
+{scene_prompt_mode_instruction}
 {script_block}
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 【第一稿固定要素库包】
@@ -3248,10 +3798,18 @@ async def pack_art_cut_job(req: PackArtCutJobRequest):
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 【执行指令】
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-请先输出一段简短的"美术剪辑笔记"（200-400字），再输出完整的美术剪辑版固定要素库包。不要解释 prompt 本身。"""
+请先输出一段简短的"美术剪辑笔记"（200-400字），再输出完整的美术剪辑版固定要素库包。不要解释 prompt 本身。
+如果上方模式是 MJ英文生图，最终所有场景卡必须转换为且只保留“MJ英文场景生图提示词”字段；把中文场景 prompt 改成英文不计入“重写最弱场景”的数量限制。"""
 
     job_kind = f"stage2_art_cut_{(req.force_scene or 'auto').strip().lower()}"
-    job = _save_cli_job_prompt(packed, req.run_id, job_kind, "阶段二美术二稿任务包")
+    job = _save_cli_job_prompt(
+        packed,
+        req.run_id,
+        job_kind,
+        "阶段二美术二稿任务包",
+        "visual",
+        "固定要素库包二稿",
+    )
     return {"prompt": packed, **job}
 
 
@@ -3274,7 +3832,7 @@ async def pack_cine_cut_job(req: PackCineCutJobRequest):
     script_block = f"\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n【阶段一剧本（叙事参考）】\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n{req.script.strip()}\n" if (req.script or "").strip() else ""
 
     # 护栏
-    guards = SHOT_NARRATIVE_GUARD
+    guards = f"{SHOT_NARRATIVE_GUARD}\n\n{SHOT_EXECUTION_FEASIBILITY_GUARD}"
     if _is_banana_cat_dog_project(req.ip_names, req.script or ""):
         guards += f"\n\n{SOFT_PET_CAMERA_GUARD}"
 
@@ -3326,7 +3884,14 @@ async def pack_cine_cut_job(req: PackCineCutJobRequest):
 请先输出"## 摄影剪辑笔记"（200-400字），再输出完整的摄影剪辑版分镜提示词包。不要解释 prompt 本身。"""
 
     job_kind = f"stage3_cine_cut_{(req.force_unit or 'auto').strip().lower()}"
-    job = _save_cli_job_prompt(packed, req.run_id, job_kind, "阶段三摄影二稿任务包")
+    job = _save_cli_job_prompt(
+        packed,
+        req.run_id,
+        job_kind,
+        "阶段三摄影二稿任务包",
+        "shot",
+        "分镜提示词包二稿",
+    )
     return {"prompt": packed, **job}
 
 
@@ -3456,6 +4021,24 @@ def _is_flux_model(model: str) -> bool:
     return "flux" in (model or "").lower()
 
 
+def _is_comfyui_model(model: str) -> bool:
+    return (model or "").strip().lower().startswith("comfyui")
+
+
+def _looks_like_comfyui_url(url: str = "") -> bool:
+    lowered = (url or "").strip().lower().rstrip("/")
+    return (
+        "onethingrobot.com" in lowered
+        or lowered.endswith(("/prompt", "/system_stats", "/object_info"))
+    )
+
+
+def _is_comfyui_route(route: RouteConfig | None) -> bool:
+    if not route:
+        return False
+    return _is_comfyui_model(route.model) or _looks_like_comfyui_url(route.url)
+
+
 def _is_flux_kontext_model(model: str) -> bool:
     lowered = (model or "").lower()
     return "flux" in lowered and "kontext" in lowered
@@ -3474,23 +4057,31 @@ def _aspect_ratio_from_size(size: str) -> str:
     return "16:9" if width > height else "9:16"
 
 
-def _limit_flux_prompt(prompt: str, limit: int = 1000) -> tuple[str, bool]:
-    text = re.sub(r"\s+", " ", (prompt or "").strip())
-    if len(text) <= limit:
-        return text, False
+def _dimensions_from_image_size(size: str) -> tuple[int, int]:
+    clean = (size or "").lower().strip()
+    match = re.match(r"^\s*(\d+)\s*x\s*(\d+)\s*$", clean)
+    if match:
+        width = max(64, min(int(match.group(1)), 2048))
+        height = max(64, min(int(match.group(2)), 2048))
+        return width - (width % 8), height - (height % 8)
 
-    hard_guard = ""
-    marker = "【场景参考图硬约束】"
-    if marker in text:
-        hard_guard = marker + text.split(marker, 1)[1]
+    ratio_defaults = {
+        "21:9": (1344, 576),
+        "16:9": (1024, 576),
+        "4:3": (1024, 768),
+        "3:2": (1152, 768),
+        "1:1": (1024, 1024),
+        "2:3": (768, 1152),
+        "3:4": (768, 1024),
+        "9:16": (576, 1024),
+        "9:21": (576, 1344),
+    }
+    return ratio_defaults.get(clean, (1024, 576))
 
-    if hard_guard:
-        hard_guard = hard_guard[-min(len(hard_guard), 360):]
-        prefix_limit = max(200, limit - len(hard_guard) - 12)
-        return (text[:prefix_limit].rstrip() + " ... " + hard_guard).strip()[:limit], True
 
-    head_limit = max(700, limit - 140)
-    return (text[:head_limit].rstrip() + " ... " + text[-120:].lstrip()).strip()[:limit], True
+def _limit_flux_prompt(prompt: str, limit: int = 0) -> tuple[str, bool]:
+    """Compatibility wrapper: image prompts are intentionally not truncated."""
+    return (prompt or "").strip(), False
 
 
 def _image_ext_from_bytes(raw: bytes, content_type: str = "") -> str:
@@ -3531,6 +4122,740 @@ def _extract_image_items(data: dict) -> list[dict]:
         for url in re.findall(r"https?://[^\s)>\"]+", content):
             extracted.append({"url": url})
     return extracted
+
+
+COMFYUI_DEFAULT_CHECKPOINT = os.getenv(
+    "COMFYUI_DEFAULT_CHECKPOINT",
+    "dreamshaperXL_v21TurboDPMSDE.safetensors",
+)
+COMFYUI_DEFAULT_NEGATIVE_PROMPT = (
+    "low quality, blurry, deformed, bad anatomy, extra limbs, extra faces, "
+    "text, watermark, logo, signature, unreadable labels, messy composition, "
+    "toy render, plastic toy, clay render, childish cartoon, over-cute cartoon, "
+    "photorealistic photography, DSLR photo, documentary landscape photo"
+)
+COMFYUI_ENGLISH_SCENE_GUARD = (
+    "Empty environment plate for later character compositing. No animals, no people, "
+    "no humanoid characters, no text, no captions, no logos, no watermarks, no layout labels. "
+    f"{SCENE_WORLD_STYLE_BIBLE_EN} "
+    "Readable animated film environment with clear foreground plant occlusion, midground performance space, "
+    "and background depth. Natural uneven ground materials, varied grass lengths, exposed organic soil, fallen leaves, "
+    "pebbles, small wildflowers, damp dark moss patches and subtle compression marks. Avoid artificial turf, plastic grass, mesh grass, heavy fog, "
+    "horror lighting, dark canyon, photographic travel landscape, toy render, plastic toy, DSLR photo."
+)
+COMFYUI_WORKFLOW_DIR = os.path.join(BASE_DIR, "comfyui_workflows")
+COMFYUI_WORKFLOW_MANIFEST_PATH = os.path.join(COMFYUI_WORKFLOW_DIR, "manifest.json")
+
+
+def _build_comfyui_base_url(base_url: str | None) -> str:
+    base = (base_url or "").strip().rstrip("/")
+    if not base:
+        raise HTTPException(status_code=400, detail="ComfyUI 模式需要填写公网 URL。")
+    for suffix in ("/prompt", "/system_stats", "/object_info", "/queue", "/history"):
+        if base.endswith(suffix):
+            base = base[: -len(suffix)]
+            break
+    return base.rstrip("/")
+
+
+def _is_cjk_heavy_prompt(text: str = "") -> bool:
+    clean = re.sub(r"\s+", "", text or "")
+    if not clean:
+        return False
+    cjk = len(re.findall(r"[\u3400-\u9fff\uf900-\ufaff]", clean))
+    latin = len(re.findall(r"[A-Za-z]", clean))
+    return cjk >= 40 and cjk > latin * 0.6
+
+
+def _prepare_comfyui_prompt(prompt: str, options: dict) -> str:
+    text = (prompt or "").strip()
+    if "【场景参考图硬约束】" in text:
+        text = text.split("【场景参考图硬约束】", 1)[0].strip()
+    if _is_cjk_heavy_prompt(text) and str(options.get("allow_chinese", "")).lower() not in {"1", "true", "yes"}:
+        raise RuntimeError(
+            "ComfyUI 当前基础工作流使用 SDXL/DreamShaper 类英文提示词模型，中文场景 prompt 容易被忽略并生成无关图。"
+            "请在阶段四切换“MJ英文场景图”，重新生成场景图清单后再点生图；"
+            "或者在模型参数中临时加 allow_chinese=1 强行尝试。"
+        )
+    if COMFYUI_ENGLISH_SCENE_GUARD.lower() not in text.lower() and not _is_cjk_heavy_prompt(text):
+        text = f"{text}\n\n{COMFYUI_ENGLISH_SCENE_GUARD}".strip()
+    return text
+
+
+def _parse_comfyui_model(model_text: str = "") -> tuple[str, dict]:
+    raw = (model_text or "").strip()
+    if raw.lower().startswith("comfyui"):
+        raw = raw.split(":", 1)[1].strip() if ":" in raw else ""
+
+    parts = [part.strip() for part in re.split(r"[|;]", raw) if part.strip()]
+    checkpoint = parts[0] if parts and "=" not in parts[0] else COMFYUI_DEFAULT_CHECKPOINT
+    options: dict[str, str] = {}
+    option_parts = parts[1:] if parts and "=" not in parts[0] else parts
+    for part in option_parts:
+        if "=" not in part:
+            continue
+        key, value = part.split("=", 1)
+        options[key.strip().lower()] = value.strip()
+    return checkpoint or COMFYUI_DEFAULT_CHECKPOINT, options
+
+
+def _comfyui_workflow_option(options: dict) -> str:
+    return (options.get("workflow") or options.get("template") or "").strip()
+
+
+def _is_builtin_comfyui_workflow(name: str = "") -> bool:
+    return (name or "").strip().lower() in {"", "builtin", "builtin_basic", "basic", "inline"}
+
+
+def _safe_comfyui_workflow_name(name: str = "") -> str:
+    clean = (name or "").strip()
+    if not re.fullmatch(r"[0-9A-Za-z_\-]{1,80}", clean):
+        raise RuntimeError(f"ComfyUI 工作流模板名无效：{clean or '空'}")
+    return clean
+
+
+def _load_comfyui_workflow_template(name: str) -> tuple[dict, dict]:
+    workflow_name = _safe_comfyui_workflow_name(name)
+    if not os.path.exists(COMFYUI_WORKFLOW_MANIFEST_PATH):
+        raise RuntimeError(f"未找到 ComfyUI 工作流清单：{COMFYUI_WORKFLOW_MANIFEST_PATH}")
+
+    with open(COMFYUI_WORKFLOW_MANIFEST_PATH, "r", encoding="utf-8") as f:
+        manifest = json.load(f)
+    workflows = manifest.get("workflows") or {}
+    entry = workflows.get(workflow_name)
+    if not isinstance(entry, dict):
+        available = ", ".join(sorted(workflows.keys())) or "无"
+        raise RuntimeError(f"未找到 ComfyUI 工作流模板：{workflow_name}。可用模板：{available}")
+
+    filename = entry.get("file") or f"{workflow_name}.json"
+    if not filename or os.path.basename(filename) != filename:
+        raise RuntimeError(f"ComfyUI 工作流模板文件名无效：{filename}")
+    path = _safe_join_under(COMFYUI_WORKFLOW_DIR, filename)
+    if not os.path.exists(path):
+        raise RuntimeError(f"ComfyUI 工作流模板文件不存在：{path}")
+
+    with open(path, "r", encoding="utf-8") as f:
+        template = json.load(f)
+    if isinstance(template, dict) and isinstance(template.get("prompt"), dict):
+        template = template["prompt"]
+    if not isinstance(template, dict) or not template:
+        raise RuntimeError(f"ComfyUI 工作流模板不是有效 API JSON：{path}")
+
+    # JSON roundtrip gives each request a deep copy without adding another import.
+    workflow = json.loads(json.dumps(template, ensure_ascii=False))
+    return workflow, {**entry, "name": workflow_name, "path": path}
+
+
+def _patch_comfyui_workflow_input(
+    workflow: dict,
+    patch: dict,
+    key: str,
+    value,
+    *,
+    required: bool = True,
+) -> bool:
+    spec = patch.get(key)
+    if not isinstance(spec, dict):
+        if required:
+            raise RuntimeError(f"ComfyUI 工作流模板缺少 patch 映射：{key}")
+        return False
+
+    node_id = str(spec.get("node") or "")
+    input_name = spec.get("input") or ""
+    node = workflow.get(node_id)
+    if not isinstance(node, dict) or not isinstance(node.get("inputs"), dict):
+        raise RuntimeError(f"ComfyUI 工作流模板 patch 指向无效节点：{key} -> {node_id}.{input_name}")
+    if not input_name:
+        raise RuntimeError(f"ComfyUI 工作流模板 patch 缺少 input 字段：{key}")
+    node["inputs"][input_name] = value
+    return True
+
+
+def _coerce_comfyui_option_value(value, value_type: str = "str"):
+    kind = (value_type or "str").strip().lower()
+    if kind in {"int", "integer"}:
+        return int(value)
+    if kind in {"float", "number"}:
+        return float(value)
+    if kind in {"bool", "boolean"}:
+        return str(value).strip().lower() in {"1", "true", "yes", "on"}
+    return str(value)
+
+
+def _build_comfyui_template_workflow(
+    *,
+    workflow_name: str,
+    prompt: str,
+    negative_prompt: str,
+    checkpoint: str,
+    width: int,
+    height: int,
+    seed: int,
+    steps: int,
+    cfg: float,
+    sampler: str,
+    scheduler: str,
+    denoise: float,
+    uploaded_image_name: str = "",
+    style_image_name: str = "",
+    filename_prefix: str = "storyboard_rag",
+    options: dict | None = None,
+) -> tuple[dict, dict]:
+    workflow, entry = _load_comfyui_workflow_template(workflow_name)
+    patch = entry.get("patch") or {}
+    option_values = options or {}
+    required_patch_keys = set(entry.get("required_patch_keys") or [])
+    patched_keys: set[str] = set()
+
+    if uploaded_image_name and not entry.get("supports_reference", False):
+        raise RuntimeError(
+            f"ComfyUI 工作流模板 {workflow_name} 不支持参考图；"
+            "请改用 workflow=repaint_sdxl_img2img，或移除 reference_image_ids。"
+        )
+    if entry.get("requires_reference", False) and not uploaded_image_name:
+        raise RuntimeError(
+            f"ComfyUI 工作流模板 {workflow_name} 需要参考图；"
+            "请先绑定/上传 @图片10-49，或改用 workflow=basic_sdxl_scene。"
+        )
+
+    for key, value in (
+        ("checkpoint", checkpoint),
+        ("prompt", prompt),
+        ("negative_prompt", negative_prompt),
+        ("width", width),
+        ("height", height),
+        ("seed", seed),
+        ("steps", steps),
+        ("cfg", cfg),
+        ("sampler", sampler),
+        ("scheduler", scheduler),
+        ("denoise", denoise),
+        ("filename_prefix", filename_prefix),
+    ):
+        if _patch_comfyui_workflow_input(workflow, patch, key, value, required=False):
+            patched_keys.add(key)
+
+    if uploaded_image_name:
+        if _patch_comfyui_workflow_input(workflow, patch, "image", uploaded_image_name, required=False):
+            patched_keys.add("image")
+        style_name = style_image_name or uploaded_image_name
+        if _patch_comfyui_workflow_input(workflow, patch, "style_image", style_name, required=False):
+            patched_keys.add("style_image")
+
+    for option_name, spec in (entry.get("option_patch") or {}).items():
+        if not isinstance(spec, dict):
+            continue
+        aliases = [option_name, *spec.get("aliases", [])]
+        raw_value = None
+        found = False
+        for alias in aliases:
+            if alias in option_values and str(option_values.get(alias, "")).strip() != "":
+                raw_value = option_values.get(alias)
+                found = True
+                break
+        if not found and "default" in spec:
+            raw_value = spec.get("default")
+            found = True
+        if not found:
+            if spec.get("required", False):
+                raise RuntimeError(f"ComfyUI 工作流模板 {workflow_name} 缺少参数：{option_name}")
+            continue
+
+        value = _coerce_comfyui_option_value(raw_value, spec.get("type", "str"))
+        _patch_comfyui_workflow_input(workflow, {option_name: spec}, option_name, value)
+        patched_keys.add(option_name)
+
+    missing_required = sorted(required_patch_keys - patched_keys)
+    if missing_required:
+        raise RuntimeError(f"ComfyUI 工作流模板 {workflow_name} 缺少必需 patch：{', '.join(missing_required)}")
+
+    return workflow, entry
+
+
+def _comfyui_int_option(options: dict, name: str, default: int, min_value: int, max_value: int) -> int:
+    try:
+        return max(min_value, min(int(options.get(name, default)), max_value))
+    except Exception:
+        return default
+
+
+def _comfyui_float_option(options: dict, name: str, default: float, min_value: float, max_value: float) -> float:
+    try:
+        return max(min_value, min(float(options.get(name, default)), max_value))
+    except Exception:
+        return default
+
+
+def _comfyui_headers(api_key: str = "") -> dict:
+    key = (api_key or "").strip()
+    if not key:
+        return {}
+    if key.lower().startswith(("bearer ", "basic ")):
+        return {"Authorization": key}
+    return {"Authorization": f"Bearer {key}"}
+
+
+async def _comfyui_json_request(
+    client: httpx.AsyncClient,
+    method: str,
+    base_url: str,
+    path: str,
+    *,
+    headers: dict | None = None,
+    json_payload: dict | None = None,
+    timeout: httpx.Timeout | float | None = None,
+) -> dict:
+    url = f"{base_url}{path}"
+    response = await client.request(
+        method,
+        url,
+        headers=headers or {},
+        json=json_payload,
+        timeout=timeout,
+    )
+    if response.status_code >= 400:
+        raise RuntimeError(f"ComfyUI API {path} 返回 {response.status_code}: {sanitize_error_msg(response.text[:1000])}")
+    if not response.content:
+        return {}
+    return response.json()
+
+
+async def _comfyui_upload_reference(
+    client: httpx.AsyncClient,
+    base_url: str,
+    headers: dict,
+    asset: dict,
+    frame_id: str,
+    stamp: str,
+    index: int,
+    timeout: httpx.Timeout,
+) -> dict:
+    filepath = asset.get("filepath") or ""
+    if not filepath or not os.path.exists(filepath):
+        raise RuntimeError(f"参考图 @图片{asset.get('id')} 本地文件不存在，无法上传到 ComfyUI。")
+    ext = os.path.splitext(filepath)[1].lower()
+    if ext not in {".png", ".jpg", ".jpeg", ".webp"}:
+        ext = ".png"
+    upload_name = f"{frame_id}_{stamp}_ref_{asset.get('id') or index}{ext}"
+    with open(filepath, "rb") as f:
+        raw = f.read()
+    files = {
+        "image": (upload_name, raw, asset.get("mime") or _content_type_for_image(filepath)),
+    }
+    response = await client.post(
+        f"{base_url}/upload/image",
+        headers=headers,
+        data={"type": "input", "overwrite": "true"},
+        files=files,
+        timeout=timeout,
+    )
+    if response.status_code >= 400:
+        raise RuntimeError(f"ComfyUI 上传参考图失败：{response.status_code} {sanitize_error_msg(response.text[:1000])}")
+    uploaded = response.json()
+    name = uploaded.get("name") or upload_name
+    subfolder = (uploaded.get("subfolder") or "").strip("/")
+    image_name = f"{subfolder}/{name}" if subfolder else name
+    return {**uploaded, "image_name": image_name, "source_id": asset.get("id")}
+
+
+def _select_comfyui_base_reference(reference_assets: list[dict], options: dict) -> dict | None:
+    mode = (options.get("mode") or "auto").strip().lower()
+    if mode in {"txt2img", "text", "none"}:
+        return None
+    if not reference_assets:
+        return None
+    if mode in {"img2img", "image", "force_img2img"}:
+        return reference_assets[0]
+
+    for asset in reference_assets:
+        try:
+            asset_id = int(asset.get("id") or 0)
+        except Exception:
+            asset_id = 0
+        if asset.get("category") == "scene" or 10 <= asset_id <= 49:
+            return asset
+    return None
+
+
+def _build_comfyui_workflow(
+    *,
+    prompt: str,
+    negative_prompt: str,
+    checkpoint: str,
+    width: int,
+    height: int,
+    seed: int,
+    steps: int,
+    cfg: float,
+    sampler: str,
+    scheduler: str,
+    denoise: float,
+    uploaded_image_name: str = "",
+    filename_prefix: str = "storyboard_rag",
+) -> dict:
+    workflow = {
+        "1": {
+            "class_type": "CheckpointLoaderSimple",
+            "inputs": {"ckpt_name": checkpoint},
+        },
+        "2": {
+            "class_type": "CLIPTextEncode",
+            "inputs": {"clip": ["1", 1], "text": prompt},
+        },
+        "3": {
+            "class_type": "CLIPTextEncode",
+            "inputs": {"clip": ["1", 1], "text": negative_prompt},
+        },
+        "7": {
+            "class_type": "KSampler",
+            "inputs": {
+                "model": ["1", 0],
+                "positive": ["2", 0],
+                "negative": ["3", 0],
+                "seed": seed,
+                "steps": steps,
+                "cfg": cfg,
+                "sampler_name": sampler,
+                "scheduler": scheduler,
+                "denoise": denoise,
+            },
+        },
+        "8": {
+            "class_type": "VAEDecode",
+            "inputs": {"samples": ["7", 0], "vae": ["1", 2]},
+        },
+        "9": {
+            "class_type": "SaveImage",
+            "inputs": {"images": ["8", 0], "filename_prefix": filename_prefix},
+        },
+    }
+
+    if uploaded_image_name:
+        workflow.update({
+            "4": {"class_type": "LoadImage", "inputs": {"image": uploaded_image_name}},
+            "5": {
+                "class_type": "ImageScale",
+                "inputs": {
+                    "image": ["4", 0],
+                    "upscale_method": "lanczos",
+                    "width": width,
+                    "height": height,
+                    "crop": "center",
+                },
+            },
+            "6": {"class_type": "VAEEncode", "inputs": {"pixels": ["5", 0], "vae": ["1", 2]}},
+        })
+        workflow["7"]["inputs"]["latent_image"] = ["6", 0]
+    else:
+        workflow["4"] = {
+            "class_type": "EmptyLatentImage",
+            "inputs": {"width": width, "height": height, "batch_size": 1},
+        }
+        workflow["7"]["inputs"]["latent_image"] = ["4", 0]
+
+    return workflow
+
+
+async def _wait_for_comfyui_history(
+    client: httpx.AsyncClient,
+    base_url: str,
+    headers: dict,
+    prompt_id: str,
+    timeout_seconds: int,
+) -> dict:
+    deadline = time.time() + timeout_seconds
+    while time.time() < deadline:
+        history = await _comfyui_json_request(
+            client,
+            "GET",
+            base_url,
+            f"/history/{prompt_id}",
+            headers=headers,
+            timeout=30.0,
+        )
+        if isinstance(history, dict) and prompt_id in history:
+            return history[prompt_id]
+        await asyncio.sleep(2)
+    raise RuntimeError(f"ComfyUI 任务超时：{prompt_id}")
+
+
+async def _generate_image_with_comfyui(
+    req: ImageGenerationRequest,
+    prompt: str,
+    folder_path: str,
+    images_dir: str,
+    frame_id: str,
+    stamp: str,
+    reference_assets: list[dict],
+    reference_asset_meta: list[dict],
+    style_reference_assets: list[dict],
+    style_reference_asset_meta: list[dict],
+):
+    base_url = _build_comfyui_base_url(req.route.url)
+    checkpoint, options = _parse_comfyui_model(req.route.model)
+    prompt = _prepare_comfyui_prompt(prompt, options)
+    width, height = _dimensions_from_image_size(req.size)
+    steps = _comfyui_int_option(options, "steps", 18, 1, 80)
+    cfg = _comfyui_float_option(options, "cfg", 5.5, 0.0, 20.0)
+    sampler = options.get("sampler", "dpmpp_2m")
+    scheduler = options.get("scheduler", "karras")
+    negative_prompt = options.get("negative", COMFYUI_DEFAULT_NEGATIVE_PROMPT)
+    timeout_seconds = _comfyui_int_option(options, "timeout", 360, 30, 1800)
+    image_timeout = httpx.Timeout(float(timeout_seconds), connect=30.0, read=float(timeout_seconds), write=120.0, pool=10.0)
+    headers = _comfyui_headers(req.route.key)
+    client = get_http_client(getattr(req.route, "use_proxy", False), getattr(req.route, "proxy_url", ""))
+
+    uploaded_refs = []
+    uploaded_image_name = ""
+    style_uploaded_image_name = ""
+    base_reference_asset = _select_comfyui_base_reference(reference_assets, options)
+    if base_reference_asset:
+        uploaded = await _comfyui_upload_reference(
+            client,
+            base_url,
+            headers,
+            base_reference_asset,
+            frame_id,
+            stamp,
+            1,
+            image_timeout,
+        )
+        uploaded_refs.append(uploaded)
+        uploaded_image_name = uploaded.get("image_name") or ""
+
+    style_reference_asset = (style_reference_assets or [None])[0]
+    if style_reference_asset and uploaded_image_name:
+        base_path = os.path.abspath(base_reference_asset.get("filepath", "")) if base_reference_asset else ""
+        style_path = os.path.abspath(style_reference_asset.get("filepath", ""))
+        if base_path and style_path and base_path == style_path:
+            style_uploaded_image_name = uploaded_image_name
+        else:
+            uploaded_style = await _comfyui_upload_reference(
+                client,
+                base_url,
+                headers,
+                style_reference_asset,
+                frame_id,
+                stamp,
+                2,
+                image_timeout,
+            )
+            uploaded_refs.append({**uploaded_style, "role": "style"})
+            style_uploaded_image_name = uploaded_style.get("image_name") or ""
+
+    denoise_default = 0.5 if uploaded_image_name else 1.0
+    denoise = _comfyui_float_option(options, "denoise", denoise_default, 0.0, 1.0)
+    workflow_name = _comfyui_workflow_option(options)
+    if workflow_name.lower() == "auto":
+        workflow_name = "repaint_sdxl_img2img" if uploaded_image_name else "basic_sdxl_scene"
+    use_workflow_template = not _is_builtin_comfyui_workflow(workflow_name)
+    workflow_template_meta = None
+    count = max(1, min(int(req.n or 1), 4))
+    saved = []
+    prompt_ids = []
+    response_records = []
+    bound_asset = None
+
+    for idx in range(1, count + 1):
+        seed = _comfyui_int_option(options, "seed", random.randint(1, 2**63 - 1), 0, 2**63 - 1)
+        if "seed" not in options and count > 1:
+            seed = random.randint(1, 2**63 - 1)
+        if use_workflow_template:
+            workflow, workflow_template_meta = _build_comfyui_template_workflow(
+                workflow_name=workflow_name,
+                prompt=prompt,
+                negative_prompt=negative_prompt,
+                checkpoint=checkpoint,
+                width=width,
+                height=height,
+                seed=seed,
+                steps=steps,
+                cfg=cfg,
+                sampler=sampler,
+                scheduler=scheduler,
+                denoise=denoise,
+                uploaded_image_name=uploaded_image_name,
+                style_image_name=style_uploaded_image_name,
+                filename_prefix=f"{frame_id}_comfy",
+                options=options,
+            )
+        else:
+            workflow = _build_comfyui_workflow(
+                prompt=prompt,
+                negative_prompt=negative_prompt,
+                checkpoint=checkpoint,
+                width=width,
+                height=height,
+                seed=seed,
+                steps=steps,
+                cfg=cfg,
+                sampler=sampler,
+                scheduler=scheduler,
+                denoise=denoise,
+                uploaded_image_name=uploaded_image_name,
+                filename_prefix=f"{frame_id}_comfy",
+            )
+        client_id = f"storyboard-rag-{random.randint(100000, 999999)}"
+        submit = await _comfyui_json_request(
+            client,
+            "POST",
+            base_url,
+            "/prompt",
+            headers=headers,
+            json_payload={"prompt": workflow, "client_id": client_id},
+            timeout=image_timeout,
+        )
+        if submit.get("node_errors"):
+            raise RuntimeError(f"ComfyUI 工作流节点错误：{submit.get('node_errors')}")
+        prompt_id = submit.get("prompt_id")
+        if not prompt_id:
+            raise RuntimeError(f"ComfyUI 未返回 prompt_id：{submit}")
+        prompt_ids.append(prompt_id)
+        log_image_event(
+            f"ComfyUI开始生图 | frame={frame_id} | prompt_id={prompt_id} | "
+            f"ckpt={checkpoint} | workflow={workflow_template_meta.get('name') if workflow_template_meta else 'builtin_basic'} | "
+            f"size={width}x{height} | "
+            f"base_ref={'@图片'+str(base_reference_asset['id']) if base_reference_asset else 'none'} | "
+            f"style_ref={'@图片'+str(style_reference_asset['id']) if style_reference_asset else 'none'}"
+        )
+        history_item = await _wait_for_comfyui_history(client, base_url, headers, prompt_id, timeout_seconds)
+        status = history_item.get("status") or {}
+        if status.get("status_str") != "success" or not status.get("completed", False):
+            raise RuntimeError(f"ComfyUI 任务未成功：{status}")
+        outputs = history_item.get("outputs") or {}
+        output_images = []
+        for node_out in outputs.values():
+            output_images.extend(node_out.get("images") or [])
+        if not output_images:
+            raise RuntimeError(f"ComfyUI 任务没有输出图片：{prompt_id}")
+
+        response_records.append({
+            "prompt_id": prompt_id,
+            "status": status,
+            "outputs": outputs,
+            "seed": seed,
+        })
+
+        for image_info in output_images:
+            img_resp = await client.get(
+                f"{base_url}/view",
+                headers=headers,
+                params={
+                    "filename": image_info.get("filename", ""),
+                    "subfolder": image_info.get("subfolder", ""),
+                    "type": image_info.get("type", "output"),
+                },
+                timeout=image_timeout,
+            )
+            if img_resp.status_code >= 400 or not img_resp.content:
+                raise RuntimeError(f"ComfyUI 下载图片失败：{img_resp.status_code}")
+            out_index = len(saved) + 1
+            ext = _image_ext_from_bytes(img_resp.content, img_resp.headers.get("content-type", ""))
+            bind_id = int(req.bind_to_image_id) if req.bind_to_image_id and out_index == 1 else None
+            filename = _generated_image_filename(images_dir, ext, frame_id, stamp, out_index, bind_id)
+            filepath = os.path.join(images_dir, filename)
+            with open(filepath, "wb") as f:
+                f.write(img_resp.content)
+            public_url = _public_output_url(filepath)
+            if out_index == 1 and req.bind_to_image_id:
+                bound_asset = _register_generated_asset(
+                    int(req.bind_to_image_id),
+                    filepath,
+                    public_url,
+                    req.bind_description,
+                    req.bind_category,
+                    req.run_id,
+                    frame_id,
+                )
+            saved.append({
+                "frame_id": frame_id,
+                "path": filepath,
+                "public_url": public_url,
+                "url": f"{base_url}/view?filename={image_info.get('filename', '')}",
+                "revised_prompt": "",
+            })
+
+    meta_path = os.path.join(images_dir, f"{frame_id}_{stamp}.json")
+    with open(meta_path, "w", encoding="utf-8") as f:
+        json.dump({
+            "frame_id": frame_id,
+            "created_at": datetime.now().isoformat(),
+            "endpoint": base_url,
+            "provider": "comfyui",
+            "model": checkpoint,
+            "size": f"{width}x{height}",
+            "prompt": prompt,
+            "negative_prompt": negative_prompt,
+            "reference_image_ids": req.reference_image_ids,
+            "reference_assets": reference_asset_meta,
+            "style_reference_image_ids": req.style_reference_image_ids,
+            "style_reference_assets": style_reference_asset_meta,
+            "reference_strategy": (
+                "img2img_style_ref"
+                if uploaded_image_name and style_uploaded_image_name and style_reference_asset
+                else "img2img_first_ref" if uploaded_image_name else "txt2img"
+            ),
+            "reference_transport": "comfyui_upload" if uploaded_image_name else "text_only",
+            "workflow_template": workflow_template_meta.get("name") if workflow_template_meta else "builtin_basic",
+            "reference_assets_used": [
+                {k: v for k, v in asset.items() if k not in {"image", "filepath", "filename", "mime"}}
+                for asset in ([base_reference_asset] if base_reference_asset else [])
+            ],
+            "style_reference_assets_used": [
+                {k: v for k, v in asset.items() if k not in {"image", "filepath", "filename", "mime"}}
+                for asset in ([style_reference_asset] if style_reference_asset else [])
+            ],
+            "comfyui": {
+                "prompt_ids": prompt_ids,
+                "uploaded_refs": uploaded_refs,
+                "options": {
+                    "steps": steps,
+                    "cfg": cfg,
+                    "sampler": sampler,
+                    "scheduler": scheduler,
+                    "denoise": denoise,
+                    "workflow": workflow_template_meta.get("name") if workflow_template_meta else "builtin_basic",
+                },
+                "workflow_template": (
+                    {
+                        "name": workflow_template_meta.get("name"),
+                        "label": workflow_template_meta.get("label"),
+                        "description": workflow_template_meta.get("description"),
+                        "path": workflow_template_meta.get("path"),
+                    }
+                    if workflow_template_meta else None
+                ),
+                "responses": response_records,
+            },
+            "bound_asset": bound_asset,
+            "saved": saved,
+        }, f, ensure_ascii=False, indent=2)
+
+    log_image_event(f"ComfyUI图片保存成功 | frame={frame_id} | count={len(saved)} | dir={images_dir}")
+    return {
+        "status": "success",
+        "folder": folder_path,
+        "images_dir": images_dir,
+        "images": saved,
+        "bound_asset": bound_asset,
+        "provider": "comfyui",
+        "reference_strategy": (
+            "img2img_style_ref"
+            if uploaded_image_name and style_uploaded_image_name and style_reference_asset
+            else "img2img_first_ref" if uploaded_image_name else "txt2img"
+        ),
+        "reference_transport": "comfyui_upload" if uploaded_image_name else "text_only",
+        "workflow_template": workflow_template_meta.get("name") if workflow_template_meta else "builtin_basic",
+        "reference_assets_used": [
+            {k: v for k, v in asset.items() if k not in {"image", "filepath", "filename", "mime"}}
+            for asset in ([base_reference_asset] if base_reference_asset else [])
+        ],
+        "style_reference_assets_used": [
+            {k: v for k, v in asset.items() if k not in {"image", "filepath", "filename", "mime"}}
+            for asset in ([style_reference_asset] if style_reference_asset else [])
+        ],
+        "comfyui_prompt_ids": prompt_ids,
+    }
 
 
 def _is_transient_image_error(status_code: int, detail: str = "") -> bool:
@@ -3735,6 +5060,7 @@ def create_codex_storyboard_job(req: CodexStoryboardJobRequest):
     compact_board_prompt_policy = {
         "must_create_before_image_generation": True,
         "must_use_for_builtin_imagegen": True,
+        "must_run_action_spatial_feasibility_audit_before_compact_prompt": True,
         "source_priority": [
             "board_prompt",
             "previous_board_reference",
@@ -3743,13 +5069,14 @@ def create_codex_storyboard_job(req: CodexStoryboardJobRequest):
             "style_text",
             "stage_outputs as background only",
         ],
-        "target_length": "1800-2600 Chinese characters; hard max 3500 Chinese characters",
+        "target_length": "no fixed character limit; preserve all actionable visual, action, scene, continuity, layout, and negative-constraint details",
         "must_include": [
             "target format: one 16:9 high-density full storyboard planning board",
             "segment title, segment range, total duration, exact storyboard frame count",
             "character reference rules and role consistency constraints",
             "previous board continuity constraints when applicable",
             "per-frame visual plan with shot number, action-beat duration, source unit, camera/motion, action/emotion, lighting/atmosphere, handoff state",
+            "pre-image action/spatial feasibility pass: height relationship, reachable contact point, input force, contact state, motion path, environment support",
             "action rhythm constraints: use action effective duration, never stretch blink/gaze/ear twitch/light touch into 2+ seconds",
             "layout constraints: reference area <=20%, environment area <=20%, storyboard grid >=60%",
             "style and quality constraints",
@@ -3775,8 +5102,9 @@ def create_codex_storyboard_job(req: CodexStoryboardJobRequest):
             "must_not_call_project_image_api": True,
             "forbidden_endpoints": ["/generate_image"],
             "must_create_compact_board_prompt": True,
-            "image_prompt_source": "compact_board_prompt_only",
-            "compact_board_prompt_target_chars": "1800-2600",
+            "image_prompt_source": "detailed_execution_prompt_preserved_in_compact_board_prompt_field",
+            "compact_board_prompt_target_chars": "no_fixed_limit",
+            "must_run_action_spatial_feasibility_audit": True,
             "save_hint": "Use the system built-in image generation tool first. If the generated PNG is available under C:/Users/Administrator/.codex/generated_images, copy it into target.images_dir and write metadata. Do not consume the user's configured image API for this Codex task.",
         },
         "run_id": safe_run_id,
@@ -3850,8 +5178,8 @@ def create_codex_storyboard_job(req: CodexStoryboardJobRequest):
 - 必须使用当前 ChatGPT/Codex 系统内置生图工具（image_gen / imagegen）。
 - 禁止调用本项目的 `/generate_image` 接口。
 - 禁止使用用户在前端配置的图片 API Key、图片模型通道或中转站。
-- 调用内置生图前，必须先基于下方原始“全案分镜图 Prompt”整理一个 `compact_board_prompt`。
-- 内置生图工具的 prompt 只能使用 `compact_board_prompt`；原始长 prompt、剧本、视觉包、分镜包只作为理解材料，不要整段塞进生图工具。
+- 调用内置生图前，必须先基于下方原始“全案分镜图 Prompt”整理一个 `compact_board_prompt` 字段；该字段名为历史兼容名，内容必须是详细执行稿，不是短提示词。
+- 内置生图工具的 prompt 使用 `compact_board_prompt`；整理时必须保留当前片段所有可见动作、构图、角色、场景、版式、连续性和负面约束细节，不要因为字数而压缩或删减。
 - 内置生图完成后，如图片文件出现在 `C:\\Users\\Administrator\\.codex\\generated_images`，再复制到下方目标目录并写入元数据。
 - 如果内置生图工具不可用，请直接说明不可用，不要自动降级到项目图片 API。
 - 第 2 段及以后必须先查看“上一张全案分镜图连续性参考”；第 1 段不需要。
@@ -3859,15 +5187,16 @@ def create_codex_storyboard_job(req: CodexStoryboardJobRequest):
 
 ## compact_board_prompt 生成规则
 
-执行本任务时，请先生成一个紧凑执行稿 `compact_board_prompt`，再用它进行内置生图。
+执行本任务时，请先生成一个详细执行稿 `compact_board_prompt`，再用它进行内置生图。字段名保留 `compact_board_prompt` 只是为了兼容旧任务包，不代表要写短。
 
-- 目标长度：约 1800-2600 个中文字符，硬上限 3500 个中文字符。
+- 目标长度：不设固定字数，不设字符硬上限；越详细越好，只要内容服务当前片段生图执行。
 - 信息优先级：当前片段边界、总时长、分镜格数量、逐格画面计划、角色参考规则、上一张全案图连续性、版式约束、风格和禁止项。
-- 必须删除：完整剧本原文、完整视觉开发包、完整阶段三分镜包、完整阶段四场景清单、重复风格词、不可见的世界观背景。
+- 不要机械整段粘贴与当前片段无关的完整剧本、完整视觉包、完整分镜包或完整场景清单；但凡与当前片段画面执行有关的细节都必须保留，不得为压缩字数删掉。
 - 必须保留：每格的镜头编号、动作节拍时长、来源单元、镜头/运镜、注意力调度、主动作与表演层、灯光/氛围、衔接状态。
+- 生图前必须先做文本级动作/空间可执行性审查：检查角色高度、目标接触点、输入力来源、接触状态、运动入出口、环境承载；如果原始 prompt 存在轻触弹飞、接触点不可达、盾牌平台化等矛盾，必须在 compact_board_prompt 中先修正为可执行动作链，再生图。
 - 动作节奏规则：只按动作有效时长切格，不按视频提交冗余时长切格；眨眼、耳抖、眼神、凝视等微反应不单独列为时间轴，只写进主动作同一时间段；只有大特写/插入镜头专门表现微反应时，才可单列 0.3-0.8 秒；轻碰、点水等短动作必须和触发结果同格呈现；3 秒以上格子必须包含至少 3 个可见状态变化。
 - 推荐结构：`总目标` → `角色/参考图规则` → `连续性要求` → `版式` → `逐格计划` → `风格质量` → `禁止项`。
-- 如果原始 prompt 与 compact 规则冲突，以 compact 规则为准；如果 compact 遗漏关键剧情，以原始 prompt 补齐后再生图。
+- 如果原始 prompt 与详细执行稿规则冲突，以详细执行稿规则为准；如果详细执行稿遗漏关键剧情、画面或连续性信息，以原始 prompt 补齐后再生图。
 
 ## 任务信息
 
@@ -3938,12 +5267,9 @@ async def generate_image(req: ImageGenerationRequest):
     prompt = (req.prompt or "").strip()
     if not prompt:
         raise HTTPException(status_code=400, detail="生图 prompt 为空。")
-    if not req.route or not req.route.key:
+    is_comfyui = _is_comfyui_route(req.route)
+    if not req.route or (not req.route.key and not is_comfyui):
         raise HTTPException(status_code=400, detail="请先在系统设置的 [4. 图片生图 API] 中配置图片 API Key。")
-
-    nodes = get_api_nodes_for_route(req.route, "gpt-image-2-pro")
-    if not nodes:
-        raise HTTPException(status_code=400, detail="解析图片 API 节点失败，请检查第4阶段配置。")
 
     folder_path = get_or_create_run_folder(req.run_id)
     images_dir = os.path.join(folder_path, "images")
@@ -3964,6 +5290,35 @@ async def generate_image(req: ImageGenerationRequest):
         {k: v for k, v in asset.items() if k != "image"}
         for asset in reference_assets
     ]
+    style_reference_assets = _load_reference_assets(req.style_reference_image_ids, req.run_id)
+    style_reference_asset_meta = [
+        {k: v for k, v in asset.items() if k != "image"}
+        for asset in style_reference_assets
+    ]
+
+    if is_comfyui:
+        try:
+            return await _generate_image_with_comfyui(
+                req,
+                prompt,
+                folder_path,
+                images_dir,
+                frame_id,
+                stamp,
+                reference_assets,
+                reference_asset_meta,
+                style_reference_assets,
+                style_reference_asset_meta,
+            )
+        except Exception as e:
+            traceback.print_exc()
+            detail = sanitize_error_msg(str(e)) or "ComfyUI 生图失败。"
+            log_image_event(f"ComfyUI生图异常 | frame={frame_id} | detail={detail}")
+            raise HTTPException(status_code=502, detail=detail)
+
+    nodes = get_api_nodes_for_route(req.route, "gpt-image-2-pro")
+    if not nodes:
+        raise HTTPException(status_code=400, detail="解析图片 API 节点失败，请检查第4阶段配置。")
 
     for node in nodes:
         image_http_client = get_http_client(node.get("use_proxy"), node.get("proxy_url", ""))
@@ -4103,9 +5458,6 @@ async def generate_image(req: ImageGenerationRequest):
             return await image_http_client.post(request_url, headers=json_headers, json=active_payload, timeout=image_timeout)
 
         try:
-            if prompt_truncated:
-                log_image_event(f"FLUX提示词已压缩 | frame={frame_id} | original_len={len(prompt)} | sent_len={len(request_prompt)} | limit=1000")
-
             response = None
             strategy_used = "no_refs"
             strategy_assets = []
@@ -4198,7 +5550,9 @@ async def generate_image(req: ImageGenerationRequest):
                         image_bytes = None
 
                 if image_bytes:
-                    filename = f"{frame_id}_{stamp}_{idx}{_image_ext_from_bytes(image_bytes, content_type)}"
+                    ext = _image_ext_from_bytes(image_bytes, content_type)
+                    bind_id = int(req.bind_to_image_id) if req.bind_to_image_id and idx == 1 else None
+                    filename = _generated_image_filename(images_dir, ext, frame_id, stamp, idx, bind_id)
                     filepath = os.path.join(images_dir, filename)
                     with open(filepath, "wb") as f:
                         f.write(image_bytes)
@@ -4519,6 +5873,50 @@ async def review_image(req: ImageReviewRequest):
         "review": review_json,
     }
 
+def _inspiration_signature(idea: dict) -> str:
+    if not isinstance(idea, dict):
+        return ""
+    text = "|".join([
+        str(idea.get("title") or ""),
+        str(idea.get("story_engine") or ""),
+        str(idea.get("spark") or idea.get("logline") or ""),
+        str(idea.get("visual_hook") or ""),
+    ])
+    return re.sub(r"\s+", "", text).lower()[:260]
+
+
+def _load_recent_archived_inspirations(ip_names: list[str] | None = None, limit: int = 35) -> list[dict]:
+    archive_dir = os.path.join(OUTPUTS_DIR, "_inspirations")
+    if not os.path.exists(archive_dir):
+        return []
+    active_ips = {name for name in (ip_names or []) if name and name != "通用新IP项目"}
+    archive_files = sorted(
+        glob.glob(os.path.join(archive_dir, "inspiration_*.json")),
+        key=lambda path: os.path.getmtime(path),
+        reverse=True,
+    )
+    ideas: list[dict] = []
+    seen: set[str] = set()
+    for path in archive_files[:80]:
+        try:
+            with open(path, "r", encoding="utf-8") as f:
+                payload = json.load(f)
+        except Exception:
+            continue
+        archived_ips = set(payload.get("ip_names") or [])
+        if active_ips and archived_ips and not (active_ips & archived_ips):
+            continue
+        for idea in payload.get("ideas") or []:
+            sig = _inspiration_signature(idea)
+            if not sig or sig in seen:
+                continue
+            seen.add(sig)
+            ideas.append(idea)
+            if len(ideas) >= limit:
+                return ideas
+    return ideas
+
+
 @app.post("/generate_inspirations")
 async def generate_inspirations(req: InspirationRequest):
     route = req.routes.get("script")
@@ -4527,7 +5925,7 @@ async def generate_inspirations(req: InspirationRequest):
     nodes = get_api_nodes_for_route(route)
     if not nodes:
         raise HTTPException(status_code=400, detail="解析 API 节点失败，请检查配置。")
-    print(f"\n收到灵感生成请求 | 使用剧本路由 | 挂载IP: {req.ip_names} | 已避开历史灵感: {len(req.previous_ideas or [])}")
+    print(f"\n收到灵感生成请求 | 使用剧本路由 | 挂载IP: {req.ip_names} | 前端传入历史: {len(req.previous_ideas or [])}")
 
     try:
         context = await load_knowledge_for_stage("script", req.ip_names)
@@ -4564,25 +5962,89 @@ async def generate_inspirations(req: InspirationRequest):
             if style_avoid else ""
         )
 
+        story_engine_pool = [
+            "身份反差", "情感错位", "规则打破", "职业错位", "道具秘密", "环境规则",
+            "倒计时任务", "误会反转", "交换身份", "沉默守护", "小型竞赛", "失物寻回",
+            "禁忌友谊", "伪装暴露", "最后一班车", "错误收件", "临时代理", "被低估的职责",
+        ]
+        setting_pool = [
+            "雨夜城市边缘", "微缩花园舞台", "临时比赛现场", "废弃交通工具", "清晨集市",
+            "屋檐下的避雨处", "后台准备间", "失物招领处", "会移动的桥", "发光水面",
+            "高处晾衣绳世界", "地下储藏室", "风很大的天台", "节日巡游路线", "破旧小店",
+        ]
+        conflict_pool = [
+            "被误解为闯祸者", "必须替别人完成不相称任务", "守护一个没人知道的秘密",
+            "被迫打破一条世界规则", "在最后期限前送达重要物件", "误把危险当成游戏",
+            "小角色临时接管大场面", "曾经的保护者需要被保护", "两个角色对同一物件理解相反",
+            "最弱的角色掌握唯一通行办法",
+        ]
+        visual_mechanism_pool = [
+            "影子暴露真相", "水面反射出隐藏路线", "旧物件留下重复动作痕迹",
+            "风把小物件变成巨大阻碍", "光斑像倒计时一样移动", "道具被误用后产生新功能",
+            "地面痕迹拼出线索", "声音节奏引导角色行动", "颜色从冷到暖完成情绪反转",
+            "角色大小差异制造任务难度",
+        ]
+        tone_pool = [
+            "轻喜剧反转", "催泪守护", "治愈冒险", "荒诞职场", "悬疑温情",
+            "小爽感逆袭", "诗意离别", "节日奇遇", "黑色幽默", "无声陪伴",
+        ]
+        for pool in [story_engine_pool, setting_pool, conflict_pool, visual_mechanism_pool, tone_pool]:
+            random.shuffle(pool)
+        diversity_nonce = random.randint(100000, 999999)
+        diversity_rows = []
+        for idx in range(5):
+            diversity_rows.append(
+                f"{idx + 1}. story_engine={story_engine_pool[idx]}；"
+                f"空间={setting_pool[idx % len(setting_pool)]}；"
+                f"冲突={conflict_pool[idx % len(conflict_pool)]}；"
+                f"视觉机制={visual_mechanism_pool[idx % len(visual_mechanism_pool)]}；"
+                f"情绪={tone_pool[idx % len(tone_pool)]}"
+            )
+        diversity_block = (
+            "【本轮强制多样化方向】\n"
+            f"创意扰动编号：{diversity_nonce}\n"
+            "5个灵感必须分别参考下面5行方向，一行对应一个灵感；可以灵活改写，但不能全部回到同一种森林追逐、蘑菇弹跳、迷路救援、守护陪伴或光点引路套路。\n"
+            + "\n".join(diversity_rows)
+        )
+
         # 🌟 上一轮灵感避免段：把已生成的方向写进 prompt，强制 5 个新灵感与之明显不同
         avoid_block = ""
-        prev_ideas = [idea for idea in (req.previous_ideas or []) if isinstance(idea, dict)]
+        archived_ideas = _load_recent_archived_inspirations(req.ip_names, limit=35)
+        raw_prev_ideas = [
+            idea for idea in ([*(req.previous_ideas or []), *archived_ideas])
+            if isinstance(idea, dict)
+        ]
+        prev_ideas = []
+        seen_prev: set[str] = set()
+        for idea in raw_prev_ideas:
+            sig = _inspiration_signature(idea)
+            if not sig or sig in seen_prev:
+                continue
+            seen_prev.add(sig)
+            prev_ideas.append(idea)
         if prev_ideas:
             avoid_lines = []
-            for idx, idea in enumerate(prev_ideas[-15:], start=1):
+            for idx, idea in enumerate(prev_ideas[-35:], start=1):
                 title = (idea.get("title") or "").strip()
+                engine = (idea.get("story_engine") or "").strip()
                 spark = (idea.get("spark") or idea.get("logline") or "").strip()
                 visual_hook = (idea.get("visual_hook") or "").strip()
-                bullet_text = " / ".join([part for part in [title, spark, visual_hook] if part])
+                conflict = (idea.get("conflict") or "").strip()
+                bullet_text = " / ".join([part for part in [title, engine, spark, visual_hook, conflict] if part])
                 if bullet_text:
                     avoid_lines.append(f"{idx}. {bullet_text}")
             if avoid_lines:
                 avoid_block = (
                     "【已经发散过的方向（请明显避开，不要换皮重写）】\n"
                     + "\n".join(avoid_lines)
-                    + "\n\n本轮5个灵感必须在主线动作、画面记忆点、空间机制、关系结构、情绪基调中至少有3点和上面任一条明显不同；"
-                    "禁止只换道具名、场景名或角色站位就当作新灵感。"
+                    + "\n\n本轮5个灵感必须在 story_engine、主线动作、画面记忆点、空间机制、关系结构、情绪基调中至少有4点和上面任一条明显不同；"
+                    "禁止只换道具名、场景名、角色站位或蘑菇/花/光点类型就当作新灵感。"
                 )
+        print(
+            f"[灵感生成] 历史避重: 前端={len(req.previous_ideas or [])} | "
+            f"归档={len(archived_ideas)} | 去重后={len(prev_ideas)}"
+        )
+        print(f"[灵感生成] 多样化方向: {' | '.join(diversity_rows)}")
 
         prompt = f"""你是短片故事开发顾问，不是剧本作者。请基于用户要求生成5个可直接进入“生成剧本阶段”的故事灵感。
 
@@ -4600,21 +6062,31 @@ async def generate_inspirations(req: InspirationRequest):
 
 {avoid_block}
 
+{diversity_block}
+
 【可轻量参考的角色/IP/编剧法则】
 {context}
 
 【工作方式】
 你可以吸收知识库中的角色底色、类型经验、编剧诊断概念和IP限制，但它们只是审美与结构底色，不是让你输出制作清单。灵感阶段只负责提出“故事火花/故事种子”，不是完整剧情梗概。请抓住一个奇妙机制、一个关系张力、一个画面钩子，但不要把完整解决方案、每一步行动和主题分析都写死，给剧本阶段留下创作空间。
 
+【可选故事发动机】
+你可以从以下发动机里选择，也可以混合或自行原创；它们用于打开脑洞，不是固定模板。
+1. 身份反差法：弱小/卑微/软萌角色 + 高光职业、巨大职责或不相称身份 + 被低估/被误解 + 用一个可见行动证明自己。
+2. 情感错位法：动物或非人角色承担人类最痛的情感任务 + 无声守护/错过/等待 + 最后一刻用物件、习惯或动作揭晓真正情感。
+3. 规则打破法：世界有一条默认规则、身份规则或物种规则 + 主角偏偏不按规则行动 + 由此产生喜剧、爽感、反转或新的关系秩序。
+4. 其他原创发动机：一个强视觉机制、一个职业错位、一个道具秘密、一个环境规则或一个情绪误会也可以成为故事核心。
+
 要求：
 1. 只输出纯JSON数组，不要Markdown，不要解释。
 2. 必须正好5个对象，id从1到5。
 3. 每个灵感都必须包含清晰的小戏剧动作雏形：主角想做什么、遇到什么具体阻碍、可能面对什么选择、关系或状态可能发生什么变化。
 4. 每个灵感都要有一个“画面记忆点”：可视化奇观、道具机制、环境反应或声音/光线/物理变化。
-5. 灵感之间要明显不同，不要只是换道具名、换场景名。
+5. 灵感之间要明显不同，不要只是换道具名、换场景名。优先让5个灵感覆盖至少3种不同故事发动机或类型气质。
+5-补充. 每个灵感必须对应“本轮强制多样化方向”中的一行；story_engine 字段要写出对应发动机或混合发动机，画面记忆点和冲突不能偏离该行太远。
 6. 默认适合发展成90秒左右短片：4-6个可变化的小场景或一段小旅程，而不是单一事件拉长。
 7. 如果挂载了专属IP或角色库，必须使用挂载角色作为故事主体，不要违背其中的基础角色设定；但也不要复述角色卡。
-8. story_input 字段要能直接粘贴到剧本阶段作为用户要求，长度控制在90-160个中文字符。写成自然的创作委托，不要像剧本大纲，不要把结尾解决动作完全写死。
+8. story_input 字段要能直接粘贴到剧本阶段作为用户要求，长度控制在90-180个中文字符。写成自然的创作委托，明确主题、角色、主线、前3秒钩子或画面记忆点，但不要像完整剧本大纲，不要把结尾解决动作完全写死。
 9. 必须给出面向短视频内容选择的评分。分数为1-10整数，overall_score不是平均值，而是综合推荐程度。
 
 禁止：
@@ -4631,6 +6103,7 @@ JSON格式：
   {{
     "id": 1,
     "title": "灵感标题",
+    "story_engine": "身份反差/情感错位/规则打破/混合/原创",
     "genre": "类型/气质",
     "spark": "一句最像灵感火花的话，带画面感但不剧透完整解决方案",
     "logline": "一句话故事钩子",
@@ -4649,7 +6122,7 @@ JSON格式：
 ]"""
 
         print(f"[灵感生成] 上下文长度: {len(context)} 字符 | 候选节点: {', '.join(n['model'] for n in nodes)}")
-        raw = await safe_api_call(nodes, [{"role": "user", "content": prompt}], 0.85, max_tokens=8192)
+        raw = await safe_api_call(nodes, [{"role": "user", "content": prompt}], 0.98, max_tokens=8192)
         print(f"[灵感生成] 模型返回完成 | 原始长度: {len(raw)} 字符")
         ideas = parse_json_array_lenient(raw)
         if not isinstance(ideas, list):
@@ -6045,10 +7518,17 @@ def _get_registry_entry(reg: dict, img_id: int, run_id: str = "") -> dict | None
 
 
 def _scoped_registry_images(reg: dict, run_id: str = "") -> dict:
-    return {
-        str(_registry_entry_id(key, entry)): entry
-        for key, entry in _iter_registry_entries(reg, run_id)
-    }
+    images = {}
+    for key, entry in _iter_registry_entries(reg, run_id):
+        img_id = _registry_entry_id(key, entry)
+        normalized = dict(entry)
+        normalized.setdefault("id", img_id)
+        normalized.setdefault("display_name", _asset_display_name(img_id))
+        normalized.setdefault("label", f"@图片{img_id}")
+        if not normalized.get("filename") and normalized.get("path"):
+            normalized["filename"] = os.path.basename(normalized["path"])
+        images[str(img_id)] = normalized
+    return images
 
 
 def _allocate_image_id(reg: dict, category: str, desired_id: int | None = None, run_id: str = "") -> int:
@@ -6070,6 +7550,43 @@ def _safe_asset_filename(name: str) -> str:
     ext = ext.lower() if ext.lower() in [".png", ".jpg", ".jpeg", ".webp"] else ".png"
     safe_stem = re.sub(r"[^0-9A-Za-z\u4e00-\u9fff_\-]+", "_", stem).strip("_")[:40] or "asset"
     return f"{safe_stem}{ext}"
+
+
+def _asset_display_name(img_id: int) -> str:
+    return f"图片{img_id}"
+
+
+def _asset_file_stem(img_id: int) -> str:
+    # Keep real filenames ASCII for URL/ComfyUI compatibility; UI displays 图片X.
+    return f"image_{int(img_id)}"
+
+
+def _asset_filename_with_version(directory: str, img_id: int, ext: str = ".png") -> str:
+    clean_ext = ext.lower() if ext.lower() in [".png", ".jpg", ".jpeg", ".webp"] else ".png"
+    stem = _asset_file_stem(img_id)
+    candidate = f"{stem}{clean_ext}"
+    if not os.path.exists(os.path.join(directory, candidate)):
+        return candidate
+
+    for version in range(2, 10000):
+        candidate = f"{stem}_v{version}{clean_ext}"
+        if not os.path.exists(os.path.join(directory, candidate)):
+            return candidate
+    return f"{stem}_{datetime.now().strftime('%H%M%S')}{clean_ext}"
+
+
+def _generated_image_filename(
+    images_dir: str,
+    ext: str,
+    frame_id: str,
+    stamp: str,
+    index: int,
+    bind_to_image_id: int | None = None,
+) -> str:
+    if bind_to_image_id:
+        return _asset_filename_with_version(images_dir, int(bind_to_image_id), ext)
+    safe_frame = _safe_name_segment(frame_id, "frame", 80)
+    return f"{safe_frame}_{stamp}_{index}{ext}"
 
 
 def _load_reference_assets(image_ids: list[int], run_id: str = "") -> list[dict]:
@@ -6097,6 +7614,7 @@ def _load_reference_assets(image_ids: list[int], run_id: str = "") -> list[dict]
             assets.append({
                 "id": img_id,
                 "label": f"@图片{img_id}",
+                "display_name": entry.get("display_name") or _asset_display_name(img_id),
                 "description": entry.get("description", ""),
                 "category": entry.get("category", ""),
                 "filepath": filepath,
@@ -6135,6 +7653,8 @@ def _register_generated_asset(
     registry_key = _registry_key_for(img_id, safe_run)
     reg["images"][registry_key] = {
         "id": img_id,
+        "display_name": _asset_display_name(img_id),
+        "label": f"@图片{img_id}",
         "description": description or frame_id or f"@图片{img_id}",
         "category": resolved_category,
         "ip_name": "",
@@ -6170,6 +7690,8 @@ def register_image(req: RegisterImageRequest):
 
     reg["images"][registry_key] = {
         "id": img_id,
+        "display_name": _asset_display_name(img_id),
+        "label": f"@图片{img_id}",
         "description": req.description,
         "category": req.category,
         "ip_name": req.ip_name,
@@ -6211,7 +7733,7 @@ async def upload_image_asset(
     refs_dir = os.path.join(folder_path, "references")
     os.makedirs(refs_dir, exist_ok=True)
 
-    filename = f"@图片{asset_id}_{_safe_asset_filename(file.filename)}"
+    filename = _asset_filename_with_version(refs_dir, asset_id, ext)
     filepath = os.path.join(refs_dir, filename)
     with open(filepath, "wb") as f:
         f.write(raw)
@@ -6220,6 +7742,8 @@ async def upload_image_asset(
     registry_key = _registry_key_for(asset_id, safe_run)
     reg["images"][registry_key] = {
         "id": asset_id,
+        "display_name": _asset_display_name(asset_id),
+        "label": f"@图片{asset_id}",
         "description": description or os.path.splitext(file.filename)[0],
         "category": category,
         "ip_name": ip_name,

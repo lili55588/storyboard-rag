@@ -1,0 +1,403 @@
+{
+  "version": 1,
+  "workflows": {
+    "basic_sdxl_scene": {
+      "label": "SDXL 空场景母版",
+      "description": "基础 txt2img 空场景工作流，适合生成 @图片10-49 场景参考图母版。",
+      "file": "basic_sdxl_scene.json",
+      "requires_reference": false,
+      "supports_reference": false,
+      "required_patch_keys": [
+        "checkpoint",
+        "prompt",
+        "negative_prompt",
+        "width",
+        "height",
+        "seed",
+        "steps",
+        "cfg",
+        "sampler",
+        "scheduler",
+        "denoise",
+        "filename_prefix"
+      ],
+      "patch": {
+        "checkpoint": { "node": "1", "input": "ckpt_name" },
+        "prompt": { "node": "2", "input": "text" },
+        "negative_prompt": { "node": "3", "input": "text" },
+        "width": { "node": "4", "input": "width" },
+        "height": { "node": "4", "input": "height" },
+        "seed": { "node": "7", "input": "seed" },
+        "steps": { "node": "7", "input": "steps" },
+        "cfg": { "node": "7", "input": "cfg" },
+        "sampler": { "node": "7", "input": "sampler_name" },
+        "scheduler": { "node": "7", "input": "scheduler" },
+        "denoise": { "node": "7", "input": "denoise" },
+        "filename_prefix": { "node": "9", "input": "filename_prefix" }
+      }
+    },
+    "repaint_sdxl_img2img": {
+      "label": "SDXL 垫图重绘",
+      "description": "基础 img2img 垫图重绘工作流，适合把已绑定场景图作为底板重绘。",
+      "file": "repaint_sdxl_img2img.json",
+      "requires_reference": true,
+      "supports_reference": true,
+      "required_patch_keys": [
+        "checkpoint",
+        "prompt",
+        "negative_prompt",
+        "image",
+        "width",
+        "height",
+        "seed",
+        "steps",
+        "cfg",
+        "sampler",
+        "scheduler",
+        "denoise",
+        "filename_prefix"
+      ],
+      "patch": {
+        "checkpoint": { "node": "1", "input": "ckpt_name" },
+        "prompt": { "node": "2", "input": "text" },
+        "negative_prompt": { "node": "3", "input": "text" },
+        "image": { "node": "4", "input": "image" },
+        "width": { "node": "5", "input": "width" },
+        "height": { "node": "5", "input": "height" },
+        "seed": { "node": "7", "input": "seed" },
+        "steps": { "node": "7", "input": "steps" },
+        "cfg": { "node": "7", "input": "cfg" },
+        "sampler": { "node": "7", "input": "sampler_name" },
+        "scheduler": { "node": "7", "input": "scheduler" },
+        "denoise": { "node": "7", "input": "denoise" },
+        "filename_prefix": { "node": "9", "input": "filename_prefix" }
+      }
+    },
+    "lora_sdxl_scene": {
+      "label": "SDXL LoRA 空场景",
+      "description": "在基础 SDXL 空场景工作流中插入 LoraLoader，可用 lora= 与 lora_strength= 参数切换 LoRA。",
+      "file": "lora_sdxl_scene.json",
+      "requires_reference": false,
+      "supports_reference": false,
+      "required_patch_keys": [
+        "checkpoint",
+        "prompt",
+        "negative_prompt",
+        "width",
+        "height",
+        "seed",
+        "steps",
+        "cfg",
+        "sampler",
+        "scheduler",
+        "denoise",
+        "filename_prefix",
+        "lora_name"
+      ],
+      "patch": {
+        "checkpoint": { "node": "1", "input": "ckpt_name" },
+        "prompt": { "node": "2", "input": "text" },
+        "negative_prompt": { "node": "3", "input": "text" },
+        "width": { "node": "4", "input": "width" },
+        "height": { "node": "4", "input": "height" },
+        "seed": { "node": "7", "input": "seed" },
+        "steps": { "node": "7", "input": "steps" },
+        "cfg": { "node": "7", "input": "cfg" },
+        "sampler": { "node": "7", "input": "sampler_name" },
+        "scheduler": { "node": "7", "input": "scheduler" },
+        "denoise": { "node": "7", "input": "denoise" },
+        "filename_prefix": { "node": "9", "input": "filename_prefix" }
+      },
+      "option_patch": {
+        "lora_name": {
+          "node": "10",
+          "input": "lora_name",
+          "default": "SDXL/add-detail-xl.safetensors",
+          "aliases": ["lora"]
+        },
+        "lora_strength_model": {
+          "node": "10",
+          "input": "strength_model",
+          "type": "float",
+          "default": 0.55,
+          "aliases": ["strength_model", "lora_strength"]
+        },
+        "lora_strength_clip": {
+          "node": "10",
+          "input": "strength_clip",
+          "type": "float",
+          "default": 0.55,
+          "aliases": ["strength_clip", "lora_strength"]
+        }
+      }
+    },
+    "upscale_image": {
+      "label": "单图高清放大",
+      "description": "使用 ComfyUI 放大模型直接放大已绑定参考图，不经过采样器重绘。",
+      "file": "upscale_image.json",
+      "requires_reference": true,
+      "supports_reference": true,
+      "required_patch_keys": [
+        "image",
+        "filename_prefix",
+        "upscale_model"
+      ],
+      "patch": {
+        "image": { "node": "4", "input": "image" },
+        "filename_prefix": { "node": "9", "input": "filename_prefix" }
+      },
+      "option_patch": {
+        "upscale_model": {
+          "node": "1",
+          "input": "model_name",
+          "default": "RealESRGAN_x2.pth",
+          "aliases": ["model_name", "upscale"]
+        }
+      }
+    },
+    "controlnet_canny_sdxl": {
+      "label": "SDXL ControlNet Canny 构图锁定",
+      "description": "参考图先缩放并提取 Canny 边缘，再通过 SDXL ControlNet + img2img 重绘，适合锁定轮廓和道具位置。",
+      "file": "controlnet_canny_sdxl.json",
+      "requires_reference": true,
+      "supports_reference": true,
+      "required_patch_keys": [
+        "checkpoint",
+        "prompt",
+        "negative_prompt",
+        "image",
+        "width",
+        "height",
+        "seed",
+        "steps",
+        "cfg",
+        "sampler",
+        "scheduler",
+        "denoise",
+        "filename_prefix",
+        "controlnet_name"
+      ],
+      "patch": {
+        "checkpoint": { "node": "1", "input": "ckpt_name" },
+        "prompt": { "node": "2", "input": "text" },
+        "negative_prompt": { "node": "3", "input": "text" },
+        "image": { "node": "4", "input": "image" },
+        "width": { "node": "5", "input": "width" },
+        "height": { "node": "5", "input": "height" },
+        "seed": { "node": "7", "input": "seed" },
+        "steps": { "node": "7", "input": "steps" },
+        "cfg": { "node": "7", "input": "cfg" },
+        "sampler": { "node": "7", "input": "sampler_name" },
+        "scheduler": { "node": "7", "input": "scheduler" },
+        "denoise": { "node": "7", "input": "denoise" },
+        "filename_prefix": { "node": "9", "input": "filename_prefix" }
+      },
+      "option_patch": {
+        "controlnet_name": {
+          "node": "12",
+          "input": "control_net_name",
+          "default": "sdxl/diffusers_xl_canny_small.safetensors",
+          "aliases": ["controlnet", "control_net"]
+        },
+        "control_strength": {
+          "node": "13",
+          "input": "strength",
+          "type": "float",
+          "default": 0.65,
+          "aliases": ["strength", "controlnet_strength"]
+        },
+        "control_start": {
+          "node": "13",
+          "input": "start_percent",
+          "type": "float",
+          "default": 0.0
+        },
+        "control_end": {
+          "node": "13",
+          "input": "end_percent",
+          "type": "float",
+          "default": 0.85
+        },
+        "canny_low": {
+          "node": "11",
+          "input": "low_threshold",
+          "type": "float",
+          "default": 0.25,
+          "aliases": ["low_threshold"]
+        },
+        "canny_high": {
+          "node": "11",
+          "input": "high_threshold",
+          "type": "float",
+          "default": 0.75,
+          "aliases": ["high_threshold"]
+        }
+      }
+    },
+    "controlnet_depth_sdxl": {
+      "label": "SDXL ControlNet Depth 空间锁定",
+      "description": "参考图先缩放并估计深度，再通过 SDXL Depth ControlNet + img2img 重绘，适合锁定空间层次和景深关系。",
+      "file": "controlnet_depth_sdxl.json",
+      "requires_reference": true,
+      "supports_reference": true,
+      "required_patch_keys": [
+        "checkpoint",
+        "prompt",
+        "negative_prompt",
+        "image",
+        "width",
+        "height",
+        "seed",
+        "steps",
+        "cfg",
+        "sampler",
+        "scheduler",
+        "denoise",
+        "filename_prefix",
+        "controlnet_name"
+      ],
+      "patch": {
+        "checkpoint": { "node": "1", "input": "ckpt_name" },
+        "prompt": { "node": "2", "input": "text" },
+        "negative_prompt": { "node": "3", "input": "text" },
+        "image": { "node": "4", "input": "image" },
+        "width": { "node": "5", "input": "width" },
+        "height": { "node": "5", "input": "height" },
+        "seed": { "node": "7", "input": "seed" },
+        "steps": { "node": "7", "input": "steps" },
+        "cfg": { "node": "7", "input": "cfg" },
+        "sampler": { "node": "7", "input": "sampler_name" },
+        "scheduler": { "node": "7", "input": "scheduler" },
+        "denoise": { "node": "7", "input": "denoise" },
+        "filename_prefix": { "node": "9", "input": "filename_prefix" }
+      },
+      "option_patch": {
+        "controlnet_name": {
+          "node": "12",
+          "input": "control_net_name",
+          "default": "sdxl/diffusers_xl_depth_small.safetensors",
+          "aliases": ["controlnet", "control_net"]
+        },
+        "control_strength": {
+          "node": "13",
+          "input": "strength",
+          "type": "float",
+          "default": 0.55,
+          "aliases": ["strength", "controlnet_strength"]
+        },
+        "control_start": {
+          "node": "13",
+          "input": "start_percent",
+          "type": "float",
+          "default": 0.0
+        },
+        "control_end": {
+          "node": "13",
+          "input": "end_percent",
+          "type": "float",
+          "default": 0.8
+        },
+        "depth_ckpt": {
+          "node": "11",
+          "input": "ckpt_name",
+          "default": "depth_anything_v2_vits.pth",
+          "aliases": ["depth_model"]
+        },
+        "depth_resolution": {
+          "node": "11",
+          "input": "resolution",
+          "type": "int",
+          "default": 512,
+          "aliases": ["preprocess_resolution", "resolution"]
+        }
+      }
+    },
+    "ipadapter_sdxl_reference": {
+      "label": "SDXL IPAdapter 参考一致性",
+      "description": "使用底图作为 img2img 构图基础，并可额外使用风格图作为 IPAdapter 图像条件，适合跨场景统一光线、材质和世界元素。",
+      "file": "ipadapter_sdxl_reference.json",
+      "requires_reference": true,
+      "supports_reference": true,
+      "required_patch_keys": [
+        "checkpoint",
+        "prompt",
+        "negative_prompt",
+        "image",
+        "width",
+        "height",
+        "seed",
+        "steps",
+        "cfg",
+        "sampler",
+        "scheduler",
+        "denoise",
+        "filename_prefix",
+        "ipadapter_preset",
+        "ipadapter_weight"
+      ],
+      "patch": {
+        "checkpoint": { "node": "1", "input": "ckpt_name" },
+        "prompt": { "node": "2", "input": "text" },
+        "negative_prompt": { "node": "3", "input": "text" },
+        "image": { "node": "4", "input": "image" },
+        "style_image": { "node": "16", "input": "image" },
+        "width": { "node": "5", "input": "width" },
+        "height": { "node": "5", "input": "height" },
+        "seed": { "node": "7", "input": "seed" },
+        "steps": { "node": "7", "input": "steps" },
+        "cfg": { "node": "7", "input": "cfg" },
+        "sampler": { "node": "7", "input": "sampler_name" },
+        "scheduler": { "node": "7", "input": "scheduler" },
+        "denoise": { "node": "7", "input": "denoise" },
+        "filename_prefix": { "node": "9", "input": "filename_prefix" }
+      },
+      "option_patch": {
+        "ipadapter_preset": {
+          "node": "14",
+          "input": "preset",
+          "default": "STANDARD (medium strength)",
+          "aliases": ["ipadapter", "ipadapter_model", "preset"]
+        },
+        "ipadapter_weight": {
+          "node": "15",
+          "input": "weight",
+          "type": "float",
+          "default": 0.75,
+          "aliases": ["ip_weight", "weight"]
+        },
+        "ipadapter_weight_type": {
+          "node": "15",
+          "input": "weight_type",
+          "default": "style transfer",
+          "aliases": ["ip_weight_type", "weight_type"]
+        },
+        "ipadapter_combine_embeds": {
+          "node": "15",
+          "input": "combine_embeds",
+          "default": "average",
+          "aliases": ["combine_embeds"]
+        },
+        "ipadapter_start": {
+          "node": "15",
+          "input": "start_at",
+          "type": "float",
+          "default": 0.0,
+          "aliases": ["ip_start"]
+        },
+        "ipadapter_end": {
+          "node": "15",
+          "input": "end_at",
+          "type": "float",
+          "default": 1.0,
+          "aliases": ["ip_end"]
+        },
+        "ipadapter_embeds_scaling": {
+          "node": "15",
+          "input": "embeds_scaling",
+          "default": "V only",
+          "aliases": ["embeds_scaling"]
+        }
+      }
+    }
+  }
+}

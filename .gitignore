@@ -38,6 +38,7 @@ proxy]
 *.mkv
 
 # Local/editor/system files
+.codex/context/
 .DS_Store
 Thumbs.db
 .vscode/
